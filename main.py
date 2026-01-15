@@ -107,6 +107,7 @@ def main(cfg):
                     id += 1
                 else:
                     # Search Top 1 score person identification
+                    # Search Top 1 score person identification
                     top1_person = np.array(
                         [
                             {
@@ -114,13 +115,10 @@ def main(cfg):
                                 "cls_name": value["cls_name"],
                                 "color": value["color"],
                                 "score": distance.cosine(
-                                    np.expand_dims(
-                                        np.mean(value["extracted_features"], axis=0),
-                                        axis=0,
-                                    )
+                                    np.mean(value["extracted_features"], axis=0)
                                     if len(value["extracted_features"]) > 1
-                                    else value["extracted_features"],
-                                    extracted_features,
+                                    else value["extracted_features"].flatten(),
+                                    extracted_features.flatten(),
                                 ),
                             }
                             for value in detected_persons.values()

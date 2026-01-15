@@ -23,7 +23,7 @@ class FeatureExtraction:
         elif self.device.lower() == "cuda":
             self.ort_session = ort.InferenceSession(
                 self.onnx_path,
-                providers=["TensorrtExecutionProvider", "CUDAExecutionProvider"],
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
             )
         else:
             raise ValueError("Choose between CPU or CUDA!")
