@@ -1,10 +1,10 @@
-video_path: "./sample3"
+video_path: "./sample2"
 
 object_detection_model_path: "./models/pretrained_models/yolov4-tiny.onnx"
 object_detection_classes_path: "./models/pretrained_models/coco.names"
 feature_extraction_model_path: "./models/pretrained_models/osnet_ain_x1_0_M.onnx"
 
-size_each_camera_image: [1920, 1080]
+size_each_camera_image: [1020, 920]
 resize_all_camera_image: 0.5
 
 object_detection_threshold: 0.7
@@ -15,6 +15,35 @@ max_gallery_set_each_person: 512
 
 display_video_camera_tracking: true
 save_video_camera_tracking: false
-fps_save_video_camera_tracking: 30.0
+fps_save_video_camera_tracking: 15.0
 output_path_name_save_video_camera_tracking: "./"
 output_name_save_video_camera_tracking: "output"
+tracking_log_dir: "./tracking_logs"
+# ==================== LIFECYCLE MANAGEMENT CONFIG ====================
+# Số frames không thấy để chuyển từ TRACKING -> LOST
+max_lost_frames: 30 
+
+# Số frames không thấy để chuyển từ LOST -> CONFIRMED_LOST  
+max_confirm_lost_frames: 90
+
+# Số giây không hoạt động để chuyển từ CONFIRMED_LOST -> ARCHIVED
+archive_after_seconds: 300
+
+time_window_seconds: 3.0
+
+camera_topology:
+  0: [1]
+  1: [0, 2]
+  2: [1, 3]
+  3: [2]
+
+# Maximum transition time (seconds) between connected cameras
+# Format: "source->target": max_seconds
+# If a person moves between cameras within this time, maintain same ID
+camera_transition_max_time:
+  "0->1": 5.0
+  "1->0": 5.0
+  "1->2": 6.0
+  "2->1": 6.0
+  "2->3": 5.0
+  "3->2": 5.0

@@ -19,11 +19,24 @@ build/
 # Project specific
 *.avi
 *.mp4
+*.mkv
+*.mov
 output/
+results/
+runs/
+tracking_logs/
 *.weights
 *.pt
-models/*.onnx
+*.onnx
+models/
+!models/pretrained_models/.gitkeep
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Sample directories
+sample_video/
+sample2/
+sample3/
+sample4/

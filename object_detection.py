@@ -112,15 +112,17 @@ class ObjectDetection:
     def _postprocessing_result(self, postprocess_onnx):
         result_outputs = []
         for x1, y1, x2, y2, _, confidence, label in postprocess_onnx[0]:
-            if self.class_names[int(label)] not in self.choose_classes:
+            # CHỈ LẤY CLASS 0 (PERSON)
+            if int(label) != 0:
                 continue
+                
             x1 = int(x1 * self.model_width)
             y1 = int(y1 * self.model_height)
             x2 = int(x2 * self.model_width)
             y2 = int(y2 * self.model_height)
             result_outputs.append(
                 {
-                    self.class_names[int(label)].title(): {
+                    "Person": {  # Hardcode "Person" luôn vì chỉ detect class 0
                         "confidence": float(f"{confidence:.2f}"),
                         "bounding_box": [x1, y1, x2, y2],
                     }
