@@ -3,6 +3,7 @@ import cv2
 import yaml
 import argparse
 import numpy as np
+import time
 from datetime import datetime
 from scipy.spatial import distance
 from tqdm.autonotebook import tqdm
@@ -10,7 +11,13 @@ from itertools import count as while_true
 from object_detection import ObjectDetection
 from feature_extraction import FeatureExtraction
 from person_lifecycle_manager import PersonLifecycleManager, PersonState
-from helpers import stack_images, new_coordinates_resize, setup_resolution
+from helpers import (
+    map_bbox_letterbox,
+    resize_with_letterbox,
+    setup_resolution,
+    stack_images,
+)
+from rtsp_multicam_loader import RTSPStreamLoader
 
 
 def main(cfg):
@@ -61,12 +68,19 @@ def main(cfg):
 
     # Setup camera
     cam = {}
-    videos = np.array(os.listdir(cfg["video_path"]))
-    total_cam = len(videos)
-    for i in range(total_cam):
-        cam[f"cam_{i}"] = cv2.VideoCapture(os.path.join(cfg["video_path"], videos[i]))
-        cam[f"cam_{i}"].set(3, cfg["size_each_camera_image"][0])
-        cam[f"cam_{i}"].set(4, cfg["size_each_camera_image"][1])
+    rtsp_urls = cfg.get("rtsp_urls", [])
+    loaders = []
+    if rtsp_urls:
+        total_cam = len(rtsp_urls)
+        for i, url in enumerate(rtsp_urls):
+            loaders.append(RTSPStreamLoader(url, f"cam_{i}").start())
+    else:
+        videos = np.array(os.listdir(cfg["video_path"]))
+        total_cam = len(videos)
+        for i in range(total_cam):
+            cam[f"cam_{i}"] = cv2.VideoCapture(os.path.join(cfg["video_path"], videos[i]))
+            cam[f"cam_{i}"].set(3, cfg["size_each_camera_image"][0])
+            cam[f"cam_{i}"].set(4, cfg["size_each_camera_image"][1])
     
     if cfg["save_video_camera_tracking"]:
         out = cv2.VideoWriter(
@@ -95,46 +109,62 @@ def main(cfg):
         predicts = {}
 
         # Get camera image
-        for i in range(total_cam):
-            ret, images[f"image_{i}"] = cam[f"cam_{i}"].read()
-            if not ret:
-                print("\n⚠️ Video đã kết thúc")
-                break
+        if rtsp_urls:
+            for i, loader in enumerate(loaders):
+                frame, _ = loader.read()
+                if frame is None:
+                    continue
+                images[f"image_{i}"] = frame
+        else:
+            for i in range(total_cam):
+                ret, images[f"image_{i}"] = cam[f"cam_{i}"].read()
+                if not ret:
+                    print("\n⚠️ Video đã kết thúc")
+                    break
 
         if not images:
+            if rtsp_urls:
+                time.sleep(0.01)
+                continue
             break
 
         # Predict person with object detection
         for i in range(total_cam):
-            predicts[f"image_{i}"] = object_detection.predict_img(images[f"image_{i}"])
+            image_key = f"image_{i}"
+            if image_key not in images:
+                continue
+            predicts[image_key] = object_detection.predict_img(images[image_key])
 
-        # Resize image for display in screen
+        # Resize image for display in screen (keep aspect ratio)
+        display_images = {}
+        resize_meta = {}
         for i in range(total_cam):
-            images[f"image_{i}"] = cv2.resize(
-                images[f"image_{i}"],
+            image_key = f"image_{i}"
+            if image_key not in images:
+                continue
+            display_images[image_key], scale, pad = resize_with_letterbox(
+                images[image_key],
                 cfg["size_each_camera_image"],
-                interpolation=cv2.INTER_CUBIC,
             )
+            resize_meta[image_key] = (scale, pad)
 
         for i in range(total_cam):
-            for predict in predicts[f"image_{i}"]:
+            image_key = f"image_{i}"
+            if image_key not in predicts:
+                continue
+            for predict in predicts[image_key]:
                 cls_name = tuple(predict.keys())[0]
                 x1, y1, x2, y2 = predict[cls_name]["bounding_box"]
 
-                # Resize bbox for new size image
-                x1, y1 = new_coordinates_resize(
-                    (object_detection.model_width, object_detection.model_height),
-                    cfg["size_each_camera_image"],
-                    (x1, y1),
-                )
-                x2, y2 = new_coordinates_resize(
-                    (object_detection.model_width, object_detection.model_height),
-                    cfg["size_each_camera_image"],
-                    (x2, y2),
-                )
-                
                 # Person identification
-                cropped_image = images[f"image_{i}"][y1:y2, x1:x2]
+                height, width = images[image_key].shape[:2]
+                x1 = max(0, min(x1, width - 1))
+                y1 = max(0, min(y1, height - 1))
+                x2 = max(0, min(x2, width - 1))
+                y2 = max(0, min(y2, height - 1))
+                if x2 <= x1 or y2 <= y1:
+                    continue
+                cropped_image = images[image_key][y1:y2, x1:x2]
                 extracted_features = feature_extraction.predict_img(cropped_image)[0]
 
                 # Add new person if data is empty
@@ -321,10 +351,17 @@ def main(cfg):
                     else:
                         color = (128, 128, 128)  # Xám
                     
+                    scale, pad = resize_meta[image_key]
+                    disp_bbox = map_bbox_letterbox(
+                        value["bbox"],
+                        scale,
+                        pad,
+                        cfg["size_each_camera_image"],
+                    )
                     cv2.rectangle(
-                        images[f"image_{i}"],
-                        value["bbox"][:2],
-                        value["bbox"][2:],
+                        display_images[image_key],
+                        disp_bbox[:2],
+                        disp_bbox[2:],
                         color,
                         2,
                     )
@@ -332,9 +369,9 @@ def main(cfg):
                     # Thêm state vào label
                     label = f"{value['cls_name']} {person_id} [{person.state.value[:4]}]: {value['confidence']:.2f}"
                     cv2.putText(
-                        images[f"image_{i}"],
+                        display_images[image_key],
                         label,
-                        (value["bbox"][0], value["bbox"][1] - 10),
+                        (disp_bbox[0], max(0, disp_bbox[1] - 10)),
                         cv2.FONT_HERSHEY_PLAIN,
                         1,
                         color,
@@ -345,19 +382,39 @@ def main(cfg):
         lifecycle_manager.process_frame_end(detected_ids_in_frame)
         # ======================================================================
 
+        if not display_images:
+            if rtsp_urls:
+                time.sleep(0.01)
+                continue
+            break
+
         # Display all cam
         if total_cam % 2 == 0:
             display_image = stack_images(
                 cfg["resize_all_camera_image"],
                 (
-                    [images[f"image_{i}"] for i in range(0, total_cam // 2)],
-                    [images[f"image_{i}"] for i in range(total_cam // 2, total_cam)],
+                    [
+                        display_images[f"image_{i}"]
+                        for i in range(0, total_cam // 2)
+                        if f"image_{i}" in display_images
+                    ],
+                    [
+                        display_images[f"image_{i}"]
+                        for i in range(total_cam // 2, total_cam)
+                        if f"image_{i}" in display_images
+                    ],
                 ),
             )
         else:
             display_image = stack_images(
                 cfg["resize_all_camera_image"],
-                ([images[f"image_{i}"] for i in range(total_cam)],),
+                (
+                    [
+                        display_images[f"image_{i}"]
+                        for i in range(total_cam)
+                        if f"image_{i}" in display_images
+                    ],
+                ),
             )
 
         if cfg["save_video_camera_tracking"]:
@@ -396,8 +453,11 @@ def main(cfg):
     # =================================================================
 
     # Release all cam
+    for loader in loaders:
+        loader.stop()
     for i in range(total_cam):
-        cam[f"cam_{i}"].release()
+        if f"cam_{i}" in cam:
+            cam[f"cam_{i}"].release()
     if cfg["save_video_camera_tracking"]:
         out.release()
     cv2.destroyAllWindows()
