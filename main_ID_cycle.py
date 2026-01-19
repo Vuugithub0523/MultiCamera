@@ -139,14 +139,11 @@ def main(cfg):
         display_images = {}
         resize_meta = {}
         for i in range(total_cam):
-            image_key = f"image_{i}"
-            if image_key not in images:
-                continue
-            display_images[image_key], scale, pad = resize_with_letterbox(
-                images[image_key],
+            display_images[f"image_{i}"], scale, pad = resize_with_letterbox(
+                images[f"image_{i}"],
                 cfg["size_each_camera_image"],
             )
-            resize_meta[image_key] = (scale, pad)
+            resize_meta[f"image_{i}"] = (scale, pad)
 
         for i in range(total_cam):
             image_key = f"image_{i}"
@@ -157,14 +154,14 @@ def main(cfg):
                 x1, y1, x2, y2 = predict[cls_name]["bounding_box"]
 
                 # Person identification
-                height, width = images[image_key].shape[:2]
+                height, width = images[f"image_{i}"].shape[:2]
                 x1 = max(0, min(x1, width - 1))
                 y1 = max(0, min(y1, height - 1))
                 x2 = max(0, min(x2, width - 1))
                 y2 = max(0, min(y2, height - 1))
                 if x2 <= x1 or y2 <= y1:
                     continue
-                cropped_image = images[image_key][y1:y2, x1:x2]
+                cropped_image = images[f"image_{i}"][y1:y2, x1:x2]
                 extracted_features = feature_extraction.predict_img(cropped_image)[0]
 
                 # Add new person if data is empty
@@ -351,7 +348,7 @@ def main(cfg):
                     else:
                         color = (128, 128, 128)  # Xám
                     
-                    scale, pad = resize_meta[image_key]
+                    scale, pad = resize_meta[f"image_{i}"]
                     disp_bbox = map_bbox_letterbox(
                         value["bbox"],
                         scale,
@@ -359,7 +356,7 @@ def main(cfg):
                         cfg["size_each_camera_image"],
                     )
                     cv2.rectangle(
-                        display_images[image_key],
+                        display_images[f"image_{i}"],
                         disp_bbox[:2],
                         disp_bbox[2:],
                         color,
@@ -369,7 +366,7 @@ def main(cfg):
                     # Thêm state vào label
                     label = f"{value['cls_name']} {person_id} [{person.state.value[:4]}]: {value['confidence']:.2f}"
                     cv2.putText(
-                        display_images[image_key],
+                        display_images[f"image_{i}"],
                         label,
                         (disp_bbox[0], max(0, disp_bbox[1] - 10)),
                         cv2.FONT_HERSHEY_PLAIN,
@@ -393,28 +390,17 @@ def main(cfg):
             display_image = stack_images(
                 cfg["resize_all_camera_image"],
                 (
-                    [
-                        display_images[f"image_{i}"]
-                        for i in range(0, total_cam // 2)
-                        if f"image_{i}" in display_images
-                    ],
+                    [display_images[f"image_{i}"] for i in range(0, total_cam // 2)],
                     [
                         display_images[f"image_{i}"]
                         for i in range(total_cam // 2, total_cam)
-                        if f"image_{i}" in display_images
                     ],
                 ),
             )
         else:
             display_image = stack_images(
                 cfg["resize_all_camera_image"],
-                (
-                    [
-                        display_images[f"image_{i}"]
-                        for i in range(total_cam)
-                        if f"image_{i}" in display_images
-                    ],
-                ),
+                ([display_images[f"image_{i}"] for i in range(total_cam)],),
             )
 
         if cfg["save_video_camera_tracking"]:
