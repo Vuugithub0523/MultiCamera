@@ -1,4 +1,9 @@
 video_path: "./sample2"
+rtsp_urls: []
+# Ví dụ:
+# rtsp_urls:
+#   - "rtsp://user:pass@192.168.1.10:554/cam/realmonitor?channel=1&subtype=1"
+#   - "rtsp://user:pass@192.168.1.11:554/cam/realmonitor?channel=1&subtype=1"
 
 object_detection_model_path: "./models/pretrained_models/yolov4-tiny.onnx"
 object_detection_classes_path: "./models/pretrained_models/coco.names"

@@ -52,22 +52,30 @@ class ObjectDetection:
         ]
 
     def predict_img(self, img):
-        image = self._preprocessing_img(img)
+        image, scale, pad = self._preprocessing_img(img)
         input_onnx = self.ort_session.get_inputs()[0].name
         output_onnx = self.ort_session.run(None, {input_onnx: image})
         postprocess_onnx = self._postprocessing_onnx(output_onnx)
-        result_outputs = self._postprocessing_result(postprocess_onnx)
+        result_outputs = self._postprocessing_result(
+            postprocess_onnx, scale, pad, img.shape[:2]
+        )
         return result_outputs
 
     def _preprocessing_img(self, img):
-        image = cv2.resize(
-            img, (self.model_width, self.model_height), interpolation=cv2.INTER_LINEAR
-        )
+        height, width = img.shape[:2]
+        scale = min(self.model_width / width, self.model_height / height)
+        new_w = int(width * scale)
+        new_h = int(height * scale)
+        resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        image = np.zeros((self.model_height, self.model_width, 3), dtype=np.uint8)
+        pad_x = (self.model_width - new_w) // 2
+        pad_y = (self.model_height - new_h) // 2
+        image[pad_y : pad_y + new_h, pad_x : pad_x + new_w] = resized
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = np.transpose(image, (2, 0, 1)).astype(np.float32)
         image = np.expand_dims(image, axis=0)
         image /= 255.0
-        return image
+        return image, scale, (pad_x, pad_y)
 
     def _postprocessing_onnx(self, output_onnx):
         box_array = output_onnx[0]
@@ -109,17 +117,24 @@ class ObjectDetection:
 
         return np.array(bboxes_batch, dtype=np.float16)
 
-    def _postprocessing_result(self, postprocess_onnx):
+    def _postprocessing_result(self, postprocess_onnx, scale, pad, original_shape):
+        original_h, original_w = original_shape
+        pad_x, pad_y = pad
         result_outputs = []
         for x1, y1, x2, y2, _, confidence, label in postprocess_onnx[0]:
             # CHỈ LẤY CLASS 0 (PERSON)
             if int(label) != 0:
                 continue
                 
-            x1 = int(x1 * self.model_width)
-            y1 = int(y1 * self.model_height)
-            x2 = int(x2 * self.model_width)
-            y2 = int(y2 * self.model_height)
+            x1 = int((x1 * self.model_width - pad_x) / scale)
+            y1 = int((y1 * self.model_height - pad_y) / scale)
+            x2 = int((x2 * self.model_width - pad_x) / scale)
+            y2 = int((y2 * self.model_height - pad_y) / scale)
+
+            x1 = max(0, min(x1, original_w - 1))
+            y1 = max(0, min(y1, original_h - 1))
+            x2 = max(0, min(x2, original_w - 1))
+            y2 = max(0, min(y2, original_h - 1))
             result_outputs.append(
                 {
                     "Person": {  # Hardcode "Person" luôn vì chỉ detect class 0

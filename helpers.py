@@ -2,6 +2,40 @@ import cv2
 import numpy as np
 
 
+def resize_with_letterbox(image, target_size, pad_color=(0, 0, 0)):
+    target_w, target_h = target_size
+    height, width = image.shape[:2]
+    if width == 0 or height == 0:
+        blank = np.zeros((target_h, target_w, 3), dtype=np.uint8)
+        return blank, 1.0, (0, 0)
+
+    scale = min(target_w / width, target_h / height)
+    new_w = int(width * scale)
+    new_h = int(height * scale)
+    resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+
+    canvas = np.full((target_h, target_w, 3), pad_color, dtype=np.uint8)
+    pad_x = (target_w - new_w) // 2
+    pad_y = (target_h - new_h) // 2
+    canvas[pad_y : pad_y + new_h, pad_x : pad_x + new_w] = resized
+    return canvas, scale, (pad_x, pad_y)
+
+
+def map_bbox_letterbox(bbox, scale, pad, target_size):
+    x1, y1, x2, y2 = bbox
+    pad_x, pad_y = pad
+    x1 = int(x1 * scale + pad_x)
+    y1 = int(y1 * scale + pad_y)
+    x2 = int(x2 * scale + pad_x)
+    y2 = int(y2 * scale + pad_y)
+    max_w, max_h = target_size
+    x1 = max(0, min(x1, max_w - 1))
+    y1 = max(0, min(y1, max_h - 1))
+    x2 = max(0, min(x2, max_w - 1))
+    y2 = max(0, min(y2, max_h - 1))
+    return x1, y1, x2, y2
+
+
 def stack_images(scale, images):
     rows = len(images)
     cols = len(images[0])
