@@ -25,7 +25,7 @@ def main(cfg):
     lifecycle_manager = PersonLifecycleManager(
         output_dir=cfg.get("tracking_log_dir", "./tracking_logs")
     )
-    print("✅ Đã khởi tạo Person Lifecycle Manager")
+    print("Đã khởi tạo Person Lifecycle Manager")
     
     # Cấu hình lifecycle
     lifecycle_manager.max_lost_frames = cfg.get("max_lost_frames", 30)
@@ -34,19 +34,19 @@ def main(cfg):
     
     # ==================== CẤU HÌNH TIME WINDOW ====================
     time_window_seconds = cfg.get("time_window_seconds", 3.0)
-    print(f"⏰ Time window matching: {time_window_seconds} seconds")
+    print(f" Time window matching: {time_window_seconds} seconds")
     
     # ==================== CẤU HÌNH CAMERA TOPOLOGY ====================
     camera_topology = cfg.get("camera_topology", {})
     camera_transition_max_time = cfg.get("camera_transition_max_time", {})
     
     if camera_topology:
-        print(f"📹 Camera topology enabled:")
+        print(f" Camera topology enabled:")
         for cam, connected in camera_topology.items():
             print(f"   Camera {cam} → {connected}")
-        print(f"⏱️  Transition times: {len(camera_transition_max_time)} rules")
+        print(f"  Transition times: {len(camera_transition_max_time)} rules")
     else:
-        print("⚠️  Camera topology not configured - using time window only")
+        print("  Camera topology not configured - using time window only")
     # ================================================================
     
     # Variable for save detected person features
@@ -119,7 +119,7 @@ def main(cfg):
             for i in range(total_cam):
                 ret, images[f"image_{i}"] = cam[f"cam_{i}"].read()
                 if not ret:
-                    print("\n⚠️ Video đã kết thúc")
+                    print("\n Video đã kết thúc")
                     break
 
         if not images:
@@ -139,14 +139,32 @@ def main(cfg):
         display_images = {}
         resize_meta = {}
         for i in range(total_cam):
-            display_images[f"image_{i}"], scale, pad = resize_with_letterbox(
-                images[f"image_{i}"],
+            # display_images[f"image_{i}"], scale, pad = resize_with_letterbox(
+            #     images[f"image_{i}"],
+            image_key = f"image_{i}"
+            if image_key not in images:
+                placeholder = np.zeros(
+                    (
+                        cfg["size_each_camera_image"][1],
+                        cfg["size_each_camera_image"][0],
+                        3,
+                    ),
+                    dtype=np.uint8,
+                )
+                display_images[image_key] = placeholder
+                resize_meta[image_key] = (1.0, (0, 0))
+                continue
+            display_images[image_key], scale, pad = resize_with_letterbox(
+                images[image_key],
                 cfg["size_each_camera_image"],
             )
-            resize_meta[f"image_{i}"] = (scale, pad)
+            #resize_meta[f"image_{i}"] = (scale, pad)
+            resize_meta[image_key] = (scale, pad)
 
         for i in range(total_cam):
             image_key = f"image_{i}"
+            if image_key not in images:
+                continue
             if image_key not in predicts:
                 continue
             for predict in predicts[image_key]:
@@ -206,7 +224,7 @@ def main(cfg):
                         # Tất cả persons đều ngoài time window
                         if detected_persons:
                             lifecycle_manager.time_window_rejections += 1
-                            print(f"   ⏰ Time window: All persons outside window, creating new ID")
+                            print(f"    Time window: All persons outside window, creating new ID")
                         
                         person_id = lifecycle_manager.create_person(
                             camera_id=i,
@@ -408,7 +426,7 @@ def main(cfg):
         if cfg["display_video_camera_tracking"]:
             cv2.imshow("CCTV Misale", display_image)
             if cv2.waitKey(1) == ord("q"):
-                print("\n⚠️ Người dùng dừng chương trình")
+                print("\n Người dùng dừng chương trình")
                 break
         
         # Print status mỗi 100 frames
@@ -428,7 +446,7 @@ def main(cfg):
     
     # Thống kê cuối
     stats = lifecycle_manager.get_statistics()
-    print(f"\n📊 Session Statistics:")
+    print(f"\n Session Statistics:")
     print(f"   - Total persons seen: {stats['total_persons']}")
     print(f"   - Session duration: {stats['session_duration']:.1f} seconds")
     print(f"   - Active: {stats['active_persons']} | Lost: {stats['lost_persons']} | Archived: {stats['archived_persons']}")
@@ -448,7 +466,7 @@ def main(cfg):
         out.release()
     cv2.destroyAllWindows()
     
-    print("\n✅ Hoàn tất!")
+    print("\n Hoàn tất!")
 
 
 if __name__ == "__main__":

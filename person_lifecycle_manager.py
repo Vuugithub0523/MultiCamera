@@ -107,7 +107,7 @@ class PersonLifecycle:
         elif self.state == PersonState.LOST:
             self.state = PersonState.TRACKING
             self._add_state_change(old_state, PersonState.TRACKING)
-            print(f"   🔄 Person {self.person_id}: LOST -> TRACKING (tìm lại sau {self.max_frames_missing} frames)")
+            print(f"   Person {self.person_id}: LOST -> TRACKING (tìm lại sau {self.max_frames_missing} frames)")
         
         # Cập nhật thông tin
         self.last_seen = now
@@ -141,7 +141,7 @@ class PersonLifecycle:
             old_state = self.state
             self.state = PersonState.LOST
             self._add_state_change(old_state, PersonState.LOST)
-            print(f"   ⚠️  Person {self.person_id}: TRACKING -> LOST (mất {self.frames_missing} frames)")
+            print(f"     Person {self.person_id}: TRACKING -> LOST (mất {self.frames_missing} frames)")
     
     def confirm_lost(self):
         """
@@ -152,7 +152,7 @@ class PersonLifecycle:
             old_state = self.state
             self.state = PersonState.CONFIRMED_LOST
             self._add_state_change(old_state, PersonState.CONFIRMED_LOST)
-            print(f"   ❌ Person {self.person_id}: LOST -> CONFIRMED_LOST (mất {self.frames_missing} frames)")
+            print(f"    Person {self.person_id}: LOST -> CONFIRMED_LOST (mất {self.frames_missing} frames)")
             return True
         return False
     
@@ -165,7 +165,7 @@ class PersonLifecycle:
             old_state = self.state
             self.state = PersonState.ARCHIVED
             self._add_state_change(old_state, PersonState.ARCHIVED)
-            print(f"   📦 Person {self.person_id}: CONFIRMED_LOST -> ARCHIVED")
+            print(f"    Person {self.person_id}: CONFIRMED_LOST -> ARCHIVED")
             return True
         return False
     
@@ -331,9 +331,9 @@ class PersonLifecycleManager:
         self.total_persons_seen += 1
         self.next_id += 1
         
-        print(f"\n✨ NEW PERSON: ID {person_id} | Camera {camera_id} | Confidence {confidence:.2f}")
+        print(f"\n NEW PERSON: ID {person_id} | Camera {camera_id} | Confidence {confidence:.2f}")
         if match_info and match_info.get('reasoning'):
-            print(f"   📝 Reason: {match_info['reasoning']}")
+            print(f"   Reason: {match_info['reasoning']}")
         
         return person_id
     
@@ -359,7 +359,7 @@ class PersonLifecycleManager:
             self.active_persons[person_id] = person
             del self.lost_persons[person_id]
         else:
-            print(f"⚠️  Warning: Person {person_id} không tìm thấy trong active/lost")
+            print(f"  Warning: Person {person_id} không tìm thấy trong active/lost")
     
     def get_matchable_persons_topology(self, current_camera, current_time, time_window_seconds, 
                                         camera_topology, camera_transition_max_time):
@@ -497,11 +497,11 @@ class PersonLifecycleManager:
         print("\n" + "="*80)
         print(f"LIFECYCLE STATUS - {datetime.now().strftime('%H:%M:%S')}")
         print("="*80)
-        print(f"🟢 Active: {stats['active_persons']} | 🟡 Lost: {stats['lost_persons']} | 🔴 Archived: {stats['archived_persons']}")
-        print(f"📊 Total seen: {stats['total_persons']} | ⏱️  Session: {stats['session_duration']:.1f}s")
-        print(f"⏰ Time window rejections: {stats['time_window_rejections']}")
-        print(f"🚫 Topology rejections: {stats['topology_rejections']}")
-        print(f"📹 Same camera: {stats['same_camera_matches']} | 🔄 Topology transitions: {stats['topology_transitions']}")
+        print(f" Active: {stats['active_persons']} |  Lost: {stats['lost_persons']} |  Archived: {stats['archived_persons']}")
+        print(f" Total seen: {stats['total_persons']} |  Session: {stats['session_duration']:.1f}s")
+        print(f"Time window rejections: {stats['time_window_rejections']}")
+        print(f" Topology rejections: {stats['topology_rejections']}")
+        print(f" Same camera: {stats['same_camera_matches']} |  Topology transitions: {stats['topology_transitions']}")
         print("-"*80)
     
     def save_summary(self):
@@ -518,7 +518,7 @@ class PersonLifecycleManager:
         json_file = self.output_dir / f"lifecycle_{self.session_id}.json"
         with open(json_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"✅ Saved: {json_file}")
+        print(f"Saved: {json_file}")
         
         # Lưu CSV
         csv_file = self.output_dir / f"lifecycle_{self.session_id}.csv"
@@ -535,7 +535,7 @@ class PersonLifecycleManager:
                 del summary['camera_visit_counts']
                 del summary['state_transitions']
                 writer.writerow(summary)
-        print(f"✅ Saved: {csv_file}")
+        print(f" Saved: {csv_file}")
         
         # Lưu chi tiết detections với match metadata
         detections_file = self.output_dir / f"detections_{self.session_id}.csv"
@@ -561,7 +561,7 @@ class PersonLifecycleManager:
                         'feasibility_reason': detection.get('feasibility_reason', '')
                     }
                     writer.writerow(row)
-        print(f"✅ Saved: {detections_file}")
+        print(f" Saved: {detections_file}")
     
     def print_final_report(self):
         """In báo cáo cuối cùng"""
@@ -571,13 +571,13 @@ class PersonLifecycleManager:
         print("\n" + "="*80)
         print(f"FINAL LIFECYCLE REPORT - Session: {self.session_id}")
         print("="*80)
-        print(f"⏱️  Session duration: {stats['session_duration']:.1f} seconds")
-        print(f"👥 Total persons: {stats['total_persons']}")
-        print(f"📊 State distribution: {stats['state_distribution']}")
-        print(f"⏰ Time window rejections: {stats['time_window_rejections']}")
-        print(f"🚫 Topology rejections: {stats['topology_rejections']}")
-        print(f"📹 Same camera matches: {stats['same_camera_matches']}")
-        print(f"🔄 Topology transitions: {stats['topology_transitions']}")
+        print(f"  Session duration: {stats['session_duration']:.1f} seconds")
+        print(f" Total persons: {stats['total_persons']}")
+        print(f" State distribution: {stats['state_distribution']}")
+        print(f" Time window rejections: {stats['time_window_rejections']}")
+        print(f" Topology rejections: {stats['topology_rejections']}")
+        print(f" Same camera matches: {stats['same_camera_matches']}")
+        print(f" Topology transitions: {stats['topology_transitions']}")
         print("-"*80)
         
         for person in sorted(all_persons.values(), key=lambda p: p.person_id):
@@ -591,11 +591,11 @@ class PersonLifecycleManager:
             }
             
             print(f"\n{state_icon[summary['state']]} Person {summary['person_id']} [{summary['state'].upper()}]")
-            print(f"   ⏰ {summary['first_seen']} -> {summary['last_seen']}")
-            print(f"   ⏳ Duration: {summary['duration_seconds']}s")
-            print(f"   🎥 Cameras: {summary['cameras_visited']}")
-            print(f"   🔍 Detections: {summary['total_detections']}")
-            print(f"   ✓ Avg confidence: {summary['avg_confidence']}")
-            print(f"   ⚠️  Max missing: {summary['max_frames_missing']} frames")
+            print(f"    {summary['first_seen']} -> {summary['last_seen']}")
+            print(f"    Duration: {summary['duration_seconds']}s")
+            print(f"    Cameras: {summary['cameras_visited']}")
+            print(f"    Detections: {summary['total_detections']}")
+            print(f"    Avg confidence: {summary['avg_confidence']}")
+            print(f"    Max missing: {summary['max_frames_missing']} frames")
         
         print("\n" + "="*80)
