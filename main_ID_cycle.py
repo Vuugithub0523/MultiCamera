@@ -130,7 +130,10 @@ def main(cfg):
 
         # Predict person with object detection
         for i in range(total_cam):
-            predicts[f"image_{i}"] = object_detection.predict_img(images[f"image_{i}"])
+            image_key = f"image_{i}"
+            if image_key not in images:
+                continue
+            predicts[image_key] = object_detection.predict_img(images[image_key])
 
         # Resize image for display in screen (keep aspect ratio)
         display_images = {}
@@ -143,7 +146,10 @@ def main(cfg):
             resize_meta[f"image_{i}"] = (scale, pad)
 
         for i in range(total_cam):
-            for predict in predicts[f"image_{i}"]:
+            image_key = f"image_{i}"
+            if image_key not in predicts:
+                continue
+            for predict in predicts[image_key]:
                 cls_name = tuple(predict.keys())[0]
                 x1, y1, x2, y2 = predict[cls_name]["bounding_box"]
 
@@ -372,6 +378,12 @@ def main(cfg):
         # ==================== LIFECYCLE: PROCESS FRAME END ====================
         lifecycle_manager.process_frame_end(detected_ids_in_frame)
         # ======================================================================
+
+        if not display_images:
+            if rtsp_urls:
+                time.sleep(0.01)
+                continue
+            break
 
         # Display all cam
         if total_cam % 2 == 0:
