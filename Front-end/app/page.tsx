@@ -24,9 +24,10 @@ import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { VideoStream } from "@/components/VideoStream"
+import { getCameras } from "@/lib/api-client"
 
 // Camera configuration matching backend camera IDs
-const cameras = [
+const defaultCameras = [
   { id: "cam01", code: "CCTV 01", name: "Camera 1 - Entrance", location: "Main Area", status: "online" },
   { id: "cam02", code: "CCTV 02", name: "Camera 2 - Lobby", location: "Secondary Area", status: "online" },
   { id: "cam03", code: "CCTV 03", name: "Camera 3 - Warehouse", location: "Storage", status: "online" },
@@ -65,9 +66,22 @@ export default function Dashboard() {
   const [lightboxCamera, setLightboxCamera] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [cameras, setCameras] = useState(defaultCameras)
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    const loadCameras = async () => {
+      const result = await getCameras()
+      if (result.success && result.data && result.data.length > 0) {
+        setCameras(result.data)
+        setMainCamera(result.data[0]?.id ?? "cam01")
+      }
+    }
+
+    loadCameras()
   }, [])
 
   useEffect(() => {
@@ -77,6 +91,7 @@ export default function Dashboard() {
 
   const sidebarCameras = cameras.filter((c) => c.id !== mainCamera)
   const mainCameraData = cameras.find((c) => c.id === mainCamera)
+  const onlineCameras = cameras.filter((camera) => camera.status === "online").length
 
   const handleCameraSwap = (cameraId: string) => {
     setIsTransitioning(true)
@@ -130,7 +145,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border">
               <Eye className="w-3.5 h-3.5 text-emerald-500" />
               <span className="text-xs font-medium text-foreground">
-                Cameras: <span className="text-emerald-500 font-semibold">3/3</span>
+                Cameras: <span className="text-emerald-500 font-semibold">{onlineCameras}/{cameras.length}</span>
               </span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border">
