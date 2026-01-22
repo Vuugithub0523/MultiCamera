@@ -51,7 +51,7 @@ export function useWebSocketStream({
       let baseUrl = backendUrl;
       
       if (!baseUrl) {
-        const backendHttpUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+        const backendHttpUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
         baseUrl = backendHttpUrl.replace('http://', 'ws://').replace('https://', 'wss://');
       } else {
         baseUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');

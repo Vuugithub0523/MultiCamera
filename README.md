@@ -209,13 +209,13 @@ NATIVE AI BACKEND - Multi-Camera Tracking System
 [Manager] Initialized camera: cam03
 [Manager] Started 3 cameras
 
-[Startup] Server ready on http://0.0.0.0:3000
+[Startup] Server ready on http://0.0.0.0:5000
 ============================================================
 ```
 
 ### Test Server
 
-Open browser: http://localhost:3000
+Open browser: http://localhost:5000
 
 You should see API documentation.
 
@@ -238,11 +238,11 @@ You should see API documentation.
 
 ### WebSocket
 
-**Endpoint:** `ws://localhost:3000/ws/tracking/{camera_id}`
+**Endpoint:** `ws://localhost:5000/ws/tracking/{camera_id}`
 
 **Usage:**
 ```javascript
-const ws = new WebSocket('ws://localhost:3000/ws/tracking/cam01');
+const ws = new WebSocket('ws://localhost:5000/ws/tracking/cam01');
 ws.binaryType = 'arraybuffer';
 
 ws.onmessage = (event) => {
@@ -262,7 +262,7 @@ ws.onmessage = (event) => {
 Edit `Front-end/.env.local`:
 
 ```bash
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 ```
 
 ### Update WebSocket Hook (if needed)

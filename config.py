@@ -121,7 +121,7 @@ class Config:
     # SERVER SETTINGS
     # ============================================
     HOST = "0.0.0.0"
-    PORT = 3000
+    PORT = 5000
     
     # WebSocket settings
     WS_MAX_QUEUE_SIZE = 5       # Max frames queued per client

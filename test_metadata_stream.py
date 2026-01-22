@@ -18,7 +18,7 @@ import struct
 import json
 from datetime import datetime
 
-BACKEND_URL = "ws://localhost:3000"
+BACKEND_URL = "ws://localhost:5000"
 CAMERA_ID = "cam01"
 
 async def test_websocket_metadata():

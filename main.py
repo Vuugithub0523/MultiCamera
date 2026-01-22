@@ -104,7 +104,7 @@ async def websocket_tracking(websocket: WebSocket, camera_id: str):
     WebSocket endpoint for receiving processed frames
     
     Usage:
-        ws://localhost:3000/ws/tracking/cam01
+        ws://localhost:5000/ws/tracking/cam01
     """
     # Check if camera exists
     if camera_id not in manager.get_camera_ids():
