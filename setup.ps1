@@ -84,8 +84,8 @@ Write-Host "==================================" -ForegroundColor Green
 Write-Host "`nNext steps:" -ForegroundColor Yellow
 Write-Host "1. Edit config.py and set your camera RTSP URLs" -ForegroundColor Cyan
 Write-Host "2. Run: python main.py" -ForegroundColor Cyan
-Write-Host "3. Open browser: http://localhost:5000" -ForegroundColor Cyan
-Write-Host "4. WebSocket: ws://localhost:5000/ws/tracking/cam01" -ForegroundColor Cyan
+Write-Host "3. Open browser: http://localhost:3000" -ForegroundColor Cyan
+Write-Host "4. WebSocket: ws://localhost:3000/ws/tracking/cam01" -ForegroundColor Cyan
 Write-Host "`nFor testing without cameras:" -ForegroundColor Yellow
 Write-Host "  `$env:USE_VIDEO_FILES=1" -ForegroundColor Cyan
 Write-Host "  python main.py" -ForegroundColor Cyan

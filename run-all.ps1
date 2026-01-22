@@ -43,9 +43,9 @@ Write-Host "`n" + ("=" * 60) -ForegroundColor Green
 Write-Host "SYSTEM STARTED!" -ForegroundColor Green
 Write-Host "=" * 60 -ForegroundColor Green
 Write-Host "`nServices:" -ForegroundColor Cyan
-Write-Host "  Backend:  http://localhost:5000" -ForegroundColor White
+Write-Host "  Backend:  http://localhost:3000" -ForegroundColor White
 Write-Host "  Frontend: http://localhost:3000" -ForegroundColor White
-Write-Host "`nWebSocket: ws://localhost:5000/ws/tracking/{camera_id}" -ForegroundColor White
+Write-Host "`nWebSocket: ws://localhost:3000/ws/tracking/{camera_id}" -ForegroundColor White
 Write-Host "`nPress Ctrl+C to stop all services" -ForegroundColor Yellow
 Write-Host "=" * 60 -ForegroundColor Green
 

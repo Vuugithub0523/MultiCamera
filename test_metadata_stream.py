@@ -2,13 +2,23 @@
 Test script to verify optimized pipeline
 Run this AFTER starting the backend: python main.py
 """
+import sys
+
+if "pytest" in sys.modules:
+    import pytest
+
+    pytest.skip(
+        "Manual integration test; run directly after starting the backend.",
+        allow_module_level=True,
+    )
+
 import asyncio
 import websockets
 import struct
 import json
 from datetime import datetime
 
-BACKEND_URL = "ws://localhost:5000"
+BACKEND_URL = "ws://localhost:3000"
 CAMERA_ID = "cam01"
 
 async def test_websocket_metadata():

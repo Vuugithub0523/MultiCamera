@@ -244,7 +244,7 @@ export function connectToEventsStream(
   onEvent: (event: RealtimeEvent) => void,
   onError?: (error: Error) => void
 ): WebSocket {
-  const ws = new WebSocket("ws://localhost:5000/ws/events");
+  const ws = new WebSocket("ws://localhost:3000/ws/events");
 
   ws.onopen = () => {
     console.log("[Events WebSocket] Connected");
