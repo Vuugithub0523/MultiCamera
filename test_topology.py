@@ -125,7 +125,7 @@ def test_topology_transitions():
     print(f"Success Rate: {passed/len(test_cases)*100:.1f}%")
     print("=" * 70)
     
-    return failed == 0
+    assert failed == 0
 
 
 def test_lifecycle_manager_topology():
@@ -207,12 +207,15 @@ def test_lifecycle_manager_topology():
 
 if __name__ == "__main__":
     # Run tests
-    test1_passed = test_topology_transitions()
-    test_lifecycle_manager_topology()
-    
-    print("\n" + "=" * 70)
-    if test1_passed:
-        print("🎉 ALL TESTS PASSED!")
-    else:
+    try:
+        test_topology_transitions()
+        test_lifecycle_manager_topology()
+    except AssertionError:
+        print("\n" + "=" * 70)
         print("⚠️  SOME TESTS FAILED - Check output above")
-    print("=" * 70)
+        print("=" * 70)
+        raise
+    else:
+        print("\n" + "=" * 70)
+        print("🎉 ALL TESTS PASSED!")
+        print("=" * 70)

@@ -2,6 +2,16 @@
 Test script to verify optimized pipeline
 Run this AFTER starting the backend: python main.py
 """
+import sys
+
+if "pytest" in sys.modules:
+    import pytest
+
+    pytest.skip(
+        "Manual integration test; run directly after starting the backend.",
+        allow_module_level=True,
+    )
+
 import asyncio
 import websockets
 import struct
