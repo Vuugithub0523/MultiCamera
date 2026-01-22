@@ -5,7 +5,7 @@ import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import cv2
 import numpy as np
@@ -180,25 +180,12 @@ class TrackingPipeline:
 
     def _get_matchable_persons(
         self,
-        camera_index: int,
         current_time: datetime,
-    ) -> Tuple[Dict[int, object], Dict[int, str]]:
-        if self.config.camera_topology:
-            matchable = self.lifecycle_manager.get_matchable_persons_topology(
-                camera_index,
-                current_time,
-                self.config.time_window_seconds,
-                self.config.camera_topology,
-                self.config.camera_transition_max_time,
-            )
-            persons = {person_id: person for person_id, (person, _) in matchable.items()}
-            reasons = {person_id: reason for person_id, (_, reason) in matchable.items()}
-            return persons, reasons
-        persons = self.lifecycle_manager.get_matchable_persons(
+        ) -> Dict[int, object]:
+        return self.lifecycle_manager.get_matchable_persons(
             current_time,
             self.config.time_window_seconds,
         )
-        return persons, {}
 
     def process(
         self,
@@ -248,9 +235,10 @@ class TrackingPipeline:
                     detected_ids_in_frame.append(person_id)
                     continue
 
-                matchable_persons, _ = self._get_matchable_persons(camera_index, current_time)
+                matchable_persons = self._get_matchable_persons(current_time)
                 if not matchable_persons:
-                    self.lifecycle_manager.time_window_rejections += 1
+                    if self.detected_persons:
+                        self.lifecycle_manager.time_window_rejections += 1
                     person_id = self.lifecycle_manager.create_person(
                         camera_id=camera_index,
                         confidence=predict[cls_name]["confidence"],

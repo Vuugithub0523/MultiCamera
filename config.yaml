@@ -15,7 +15,7 @@ object_detection_threshold: 0.7
 feature_extraction_threshold: 0.42
 inference_model_device: "cuda"
 tracking_stream_enabled: true
-tracking_stream_interval: 3
+tracking_stream_interval: 1
 
 max_gallery_set_each_person: 512
 
