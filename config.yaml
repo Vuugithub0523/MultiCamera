@@ -33,7 +33,7 @@ max_lost_frames: 30
 max_confirm_lost_frames: 90
 
 # Số giây không hoạt động để chuyển từ CONFIRMED_LOST -> ARCHIVED
-archive_after_seconds: 300
+archive_after_seconds: 3000
 
 time_window_seconds: 3.0
 
