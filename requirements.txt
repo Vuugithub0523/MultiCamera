@@ -7,3 +7,5 @@ opencv_python_headless==4.5.5.64
 PyYAML==6.0
 scipy==1.11.4
 tqdm==4.63.0
+uvicorn==0.30.6
+fastapi==0.115.0

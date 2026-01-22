@@ -164,7 +164,7 @@ export default function Dashboard() {
                 <div className={`absolute inset-0 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
                   <VideoStream
                     cameraId={mainCamera}
-                    type="stream"
+                    type="tracking"
                     showStatus={true}
                     className="w-full h-full"
                   />
@@ -194,7 +194,7 @@ export default function Dashboard() {
                     {/* Video stream từ tracking service với bounding boxes */}
                     <VideoStream
                       cameraId={camera.id}
-                      type="stream"
+                      type="tracking"
                       className="absolute inset-0 w-full h-full opacity-95 group-hover:opacity-100 transition-opacity"
                     />
 
@@ -326,7 +326,7 @@ export default function Dashboard() {
               <div className="relative bg-black" style={{ width: '90vw', height: 'calc(90vw * 9 / 16)', maxHeight: '85vh' }}>
                 <VideoStream
                   cameraId={lightboxCamera}
-                  type="stream"
+                  type="tracking"
                   showStatus={true}
                   className="absolute inset-0 w-full h-full"
                 />
