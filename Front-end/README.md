@@ -2,6 +2,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Backend local RTSP streaming server
+
+The frontend expects a WebSocket server at `ws://localhost:8080/ws/{type}/{cameraId}`. Run the local RTSP streaming server in the repo root to stream 3 cameras using `RTSPStreamLoader`:
+
+```bash
+python local_server.py
+```
+
+Update `config.yaml` with your three RTSP URLs. The server maps them to camera IDs `cam01`, `cam02`, and `cam03` to match the frontend camera layout.
+
 First, run the development server:
 
 ```bash
@@ -159,4 +169,3 @@ ________________________________________
 10.	✅ Alert system cho người lạ
 ________________________________________
 Tổng kết: Đây là một hệ thống surveillance dashboard hoàn chỉnh với khả năng quản lý camera, tracking người, phân tích báo cáo và cảnh báo thông minh! 🚀
-
