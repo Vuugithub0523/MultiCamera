@@ -178,6 +178,41 @@ class TrackingPipeline:
         self.lifecycle_manager.archive_after_seconds = config.archive_after_seconds
         self.detected_persons: Dict[str, Dict[str, object]] = {}
 
+    def _draw_detection(
+        self,
+        frame: "cv2.Mat",
+        person_id: int,
+        cls_name: str,
+        confidence: float,
+        bbox: tuple[int, int, int, int],
+    ) -> None:
+        person = self.lifecycle_manager.active_persons.get(person_id)
+        if person is None:
+            color = (128, 128, 128)
+            state_label = "unkn"
+        elif person.state == PersonState.DETECTED:
+            color = (0, 255, 0)
+            state_label = person.state.value[:4]
+        elif person.state == PersonState.TRACKING:
+            color = self.detected_persons[f"id_{person_id}"]["color"].tolist()
+            state_label = person.state.value[:4]
+        else:
+            color = (128, 128, 128)
+            state_label = person.state.value[:4]
+
+        x1, y1, x2, y2 = bbox
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+        label = f"{cls_name} {person_id} [{state_label}]: {confidence:.2f}"
+        cv2.putText(
+            frame,
+            label,
+            (x1, max(0, y1 - 10)),
+            cv2.FONT_HERSHEY_PLAIN,
+            1,
+            color,
+            2,
+        )
+
     def _get_matchable_persons(
         self,
         current_time: datetime,
@@ -233,6 +268,13 @@ class TrackingPipeline:
                         "color": np.random.randint(0, 255, size=3),
                     }
                     detected_ids_in_frame.append(person_id)
+                    self._draw_detection(
+                        annotated_frames[camera_id],
+                        person_id,
+                        cls_name,
+                        predict[cls_name]["confidence"],
+                        (x1, y1, x2, y2),
+                    )
                     continue
 
                 matchable_persons = self._get_matchable_persons(current_time)
@@ -254,6 +296,13 @@ class TrackingPipeline:
                         "color": np.random.randint(0, 255, size=3),
                     }
                     detected_ids_in_frame.append(person_id)
+                    self._draw_detection(
+                        annotated_frames[camera_id],
+                        person_id,
+                        cls_name,
+                        predict[cls_name]["confidence"],
+                        (x1, y1, x2, y2),
+                    )
                     continue
 
                 candidates = []
@@ -303,6 +352,13 @@ class TrackingPipeline:
                             "color": top1_person["color"],
                         }
                         detected_ids_in_frame.append(top1_person["id"])
+                        self._draw_detection(
+                            annotated_frames[camera_id],
+                            top1_person["id"],
+                            top1_person["cls_name"],
+                            predict[cls_name]["confidence"],
+                            (x1, y1, x2, y2),
+                        )
                     else:
                         person_id = self.lifecycle_manager.create_person(
                             camera_id=camera_index,
@@ -319,6 +375,13 @@ class TrackingPipeline:
                             "color": np.random.randint(0, 255, size=3),
                         }
                         detected_ids_in_frame.append(person_id)
+                        self._draw_detection(
+                            annotated_frames[camera_id],
+                            person_id,
+                            cls_name,
+                            predict[cls_name]["confidence"],
+                            (x1, y1, x2, y2),
+                        )
                 else:
                     person_id = self.lifecycle_manager.create_person(
                         camera_id=camera_index,
@@ -335,36 +398,13 @@ class TrackingPipeline:
                         "color": np.random.randint(0, 255, size=3),
                     }
                     detected_ids_in_frame.append(person_id)
-
-        active_persons = self.lifecycle_manager.active_persons
-        for person_id, person in active_persons.items():
-            if person.current_camera not in camera_id_by_index:
-                continue
-            camera_id = camera_id_by_index[person.current_camera]
-            if camera_id not in annotated_frames:
-                continue
-            key = f"id_{person_id}"
-            if key not in self.detected_persons:
-                continue
-            value = self.detected_persons[key]
-            if person.state == PersonState.DETECTED:
-                color = (0, 255, 0)
-            elif person.state == PersonState.TRACKING:
-                color = value["color"].tolist()
-            else:
-                color = (128, 128, 128)
-            x1, y1, x2, y2 = value["bbox"]
-            cv2.rectangle(annotated_frames[camera_id], (x1, y1), (x2, y2), color, 2)
-            label = f"{value['cls_name']} {person_id} [{person.state.value[:4]}]: {value['confidence']:.2f}"
-            cv2.putText(
-                annotated_frames[camera_id],
-                label,
-                (x1, max(0, y1 - 10)),
-                cv2.FONT_HERSHEY_PLAIN,
-                1,
-                color,
-                2,
-            )
+                    self._draw_detection(
+                        annotated_frames[camera_id],
+                        person_id,
+                        cls_name,
+                        predict[cls_name]["confidence"],
+                        (x1, y1, x2, y2),
+                    )
 
         self.lifecycle_manager.process_frame_end(detected_ids_in_frame)
         return annotated_frames
