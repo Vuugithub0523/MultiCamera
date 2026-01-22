@@ -14,6 +14,15 @@ interface StreamStatus {
   error?: string;
 }
 
+export interface TrackingData {
+  track_id: number;
+  person_id: number | null;
+  bbox: [number, number, number, number]; // [x, y, w, h]
+  confidence: number;
+  is_new: boolean;
+  state: string | null;
+}
+
 export function useWebSocketStream({ 
   cameraId, 
   type = 'stream',
@@ -21,6 +30,7 @@ export function useWebSocketStream({
   autoReconnect = true
 }: UseWebSocketStreamOptions) {
   const [imageUrl, setImageUrl] = useState<string>('');
+  const [trackingData, setTrackingData] = useState<TrackingData[]>([]);
   const [status, setStatus] = useState<StreamStatus>({
     connected: false,
     fps: 0,
@@ -68,14 +78,31 @@ export function useWebSocketStream({
         
         try {
           if (event.data instanceof ArrayBuffer) {
-            const blob = new Blob([event.data], { type: 'image/jpeg' });
+            // Parse binary format: [4 bytes: metadata_length][metadata_json][frame_jpeg]
+            const buffer = event.data;
+            const dataView = new DataView(buffer);
+            
+            // Read metadata length (first 4 bytes)
+            const metadataLength = dataView.getUint32(0, false); // big-endian
+            
+            // Extract metadata JSON
+            const metadataBytes = new Uint8Array(buffer, 4, metadataLength);
+            const metadataText = new TextDecoder().decode(metadataBytes);
+            const metadata = JSON.parse(metadataText) as TrackingData[];
+            
+            // Extract frame JPEG
+            const frameBytes = new Uint8Array(buffer, 4 + metadataLength);
+            const blob = new Blob([frameBytes], { type: 'image/jpeg' });
             const url = URL.createObjectURL(blob);
             
             setImageUrl(prevUrl => {
               if (prevUrl) URL.revokeObjectURL(prevUrl);
               return url;
             });
+            
+            setTrackingData(metadata);
           } else {
+            // Fallback for JSON format (legacy)
             const data = JSON.parse(event.data);
             if (data.frame) {
               setImageUrl(`data:image/jpeg;base64,${data.frame}`);
@@ -158,5 +185,5 @@ export function useWebSocketStream({
     };
   }, [cameraId, type, backendUrl, autoReconnect]);
 
-  return { imageUrl, status };
+  return { imageUrl, trackingData, status };
 }

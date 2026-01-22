@@ -1,17 +1,19 @@
 // components/VideoStream.tsx
 /**
- * Video stream component that renders WebSocket video feed.
+ * Video stream component with canvas overlay for tracking annotations
  */
 "use client"
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useWebSocketStream } from '@/hooks/useWebSocketStream';
+import { drawTrackingAnnotations, drawCameraInfo, clearCanvas } from '@/lib/canvas-utils';
 
 interface VideoStreamProps {
     cameraId: string;
     type?: 'stream' | 'tracking' | 'motion';
     className?: string;
     showStatus?: boolean;
+    showAnnotations?: boolean;
     backendUrl?: string;
 }
 
@@ -20,23 +22,89 @@ export function VideoStream({
     type = 'stream',
     className = '',
     showStatus = false,
+    showAnnotations = true,
     backendUrl
 }: VideoStreamProps) {
-    const { imageUrl, status } = useWebSocketStream({ cameraId, type, backendUrl });
+    const { imageUrl, trackingData, status } = useWebSocketStream({ cameraId, type, backendUrl });
     const imgRef = useRef<HTMLImageElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [imgError, setImgError] = useState(false);
+    const [imageDimensions, setImageDimensions] = useState({ width: 1920, height: 1080 });
+
+    // Draw annotations on canvas when tracking data or image changes
+    useEffect(() => {
+        if (!showAnnotations || !canvasRef.current || !trackingData.length) return;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Clear previous drawings
+        clearCanvas(ctx, canvas.width, canvas.height);
+
+        // Draw tracking annotations
+        drawTrackingAnnotations(
+            ctx,
+            trackingData,
+            canvas.width,
+            canvas.height,
+            imageDimensions.width,
+            imageDimensions.height
+        );
+
+        // Draw camera info
+        drawCameraInfo(ctx, cameraId, status.fps, trackingData.length);
+    }, [trackingData, showAnnotations, imageDimensions, cameraId, status.fps]);
+
+    // Update canvas size when container resizes
+    useEffect(() => {
+        if (!containerRef.current || !canvasRef.current) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            if (containerRef.current && canvasRef.current) {
+                const { width, height } = containerRef.current.getBoundingClientRect();
+                canvasRef.current.width = width;
+                canvasRef.current.height = height;
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        return () => resizeObserver.disconnect();
+    }, []);
+
+    // Handle image load to get actual dimensions
+    const handleImageLoad = () => {
+        if (imgRef.current) {
+            setImageDimensions({
+                width: imgRef.current.naturalWidth,
+                height: imgRef.current.naturalHeight,
+            });
+        }
+        setImgError(false);
+    };
 
     return (
-        <div className={`relative w-full h-full bg-black ${className}`}>
+        <div ref={containerRef} className={`relative w-full h-full bg-black ${className}`}>
             {imageUrl && !imgError ? (
-                <img
-                    ref={imgRef}
-                    src={imageUrl}
-                    alt={`Camera ${cameraId}`}
-                    className="w-full h-full object-cover"
-                    onError={() => setImgError(true)}
-                    onLoad={() => setImgError(false)}
-                />
+                <>
+                    <img
+                        ref={imgRef}
+                        src={imageUrl}
+                        alt={`Camera ${cameraId}`}
+                        className="w-full h-full object-cover"
+                        onError={() => setImgError(true)}
+                        onLoad={handleImageLoad}
+                    />
+                    {showAnnotations && (
+                        <canvas
+                            ref={canvasRef}
+                            className="absolute inset-0 w-full h-full pointer-events-none"
+                            style={{ zIndex: 10 }}
+                        />
+                    )}
+                </>
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center text-white/60">
@@ -57,7 +125,7 @@ export function VideoStream({
                 </div>
             )}
 
-            {showStatus && (
+            {showStatus && !showAnnotations && (
                 <div className="absolute bottom-2 left-2 flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${status.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                     <span className="text-white text-xs bg-black/50 px-1.5 py-0.5 rounded">

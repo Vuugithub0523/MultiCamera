@@ -1,0 +1,45 @@
+{
+  "person_id": 43,
+  "state": "archived",
+  "first_seen": "2026-01-22T10:16:42.790567",
+  "last_seen": "2026-01-22T10:16:44.382138",
+  "current_camera": "cam02",
+  "camera_history": [
+    "cam02"
+  ],
+  "total_detections": 2,
+  "cameras_visited": {
+    "cam02": 2
+  },
+  "detections_history": [
+    {
+      "timestamp": "2026-01-22T10:16:42.790567",
+      "camera_id": "cam02",
+      "confidence": 0.9430589079856873,
+      "bbox": [
+        29,
+        324,
+        380,
+        754
+      ],
+      "state": "detected"
+    },
+    {
+      "timestamp": "2026-01-22T10:16:44.382138",
+      "camera_id": "cam02",
+      "confidence": 0.7204798460006714,
+      "bbox": [
+        298,
+        258,
+        404,
+        752
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 43,
+      "match_confidence": 0.7204798460006714,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    }
+  ]
+}

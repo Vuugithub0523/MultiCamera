@@ -81,7 +81,9 @@ class MultiCameraManager:
             loader = RTSPStreamLoader(
                 url=rtsp_url,
                 name=camera_id,
-                buffer_size=1  # Minimum latency
+                buffer_size=1,  # Minimum latency
+                target_width=self.config.INPUT_WIDTH,
+                target_height=self.config.INPUT_HEIGHT
             ).start()
             self.loaders[camera_id] = loader
             
@@ -95,7 +97,7 @@ class MultiCameraManager:
             )
             self.trackers[camera_id] = tracker
             
-            # Create pipeline with lifecycle manager
+            # Create pipeline with lifecycle manager and topology
             pipeline = CameraPipeline(
                 camera_id=camera_id,
                 detector=self.detector,
@@ -106,7 +108,9 @@ class MultiCameraManager:
                 detect_skip_frames=self.config.DETECTION_SKIP_FRAMES,
                 output_fps=self.config.OUTPUT_FPS,
                 reid_threshold=self.config.REID_THRESHOLD,
-                time_window_seconds=self.config.TIME_WINDOW_SECONDS
+                time_window_seconds=self.config.TIME_WINDOW_SECONDS,
+                camera_topology=getattr(self.config, 'CAMERA_TOPOLOGY', {}),
+                camera_transition_max_time=getattr(self.config, 'CAMERA_TRANSITION_MAX_TIME', {})
             )
             self.pipelines[camera_id] = pipeline
             

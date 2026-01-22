@@ -19,6 +19,8 @@ class RTSPStreamLoader:
         name: str,
         reconnect_delay: float = 2.0,
         buffer_size: int = 1,
+        target_width: int = 640,
+        target_height: int = 360,
     ) -> None:
         """
         Initialize RTSP stream loader
@@ -28,11 +30,15 @@ class RTSPStreamLoader:
             name: Stream name/identifier
             reconnect_delay: Seconds to wait before reconnection attempt
             buffer_size: OpenCV buffer size (1 = minimum latency)
+            target_width: Target frame width for resize
+            target_height: Target frame height for resize
         """
         self.url = url
         self.name = name
         self.reconnect_delay = reconnect_delay
         self.buffer_size = buffer_size
+        self.target_width = target_width
+        self.target_height = target_height
         
         self._cap: Optional[cv2.VideoCapture] = None
         self._frame: Optional[Tuple[float, np.ndarray]] = None
@@ -121,6 +127,14 @@ class RTSPStreamLoader:
                 self._cap = None
                 time.sleep(self.reconnect_delay)
                 continue
+
+            # Resize frame to target resolution for faster processing
+            if frame.shape[1] != self.target_width or frame.shape[0] != self.target_height:
+                frame = cv2.resize(
+                    frame,
+                    (self.target_width, self.target_height),
+                    interpolation=cv2.INTER_LINEAR
+                )
 
             # Update frame with timestamp
             timestamp = time.time()

@@ -55,19 +55,19 @@ class Config:
     # DETECTION & TRACKING SETTINGS
     # ============================================
     # YOLO Detection
-    DETECTION_CONFIDENCE = 0.25  # Lowered from 0.5 for better detection
-    DETECTION_SKIP_FRAMES = 2  # Detect every N frames (1=every frame, 2=skip 1)
+    DETECTION_CONFIDENCE = 0.4  # Higher threshold = less detections = faster
+    DETECTION_SKIP_FRAMES = 4  # Detect every 4th frame (optimized for Full HD)
     
     # BYTETracker Settings
-    TRACK_THRESH = 0.25         # Lowered from 0.5 - High confidence detection threshold
+    TRACK_THRESH = 0.4         # Higher threshold for faster processing
     MATCH_THRESH = 0.8          # IoU threshold for matching
     TRACK_BUFFER = 30           # Frames to keep lost tracks
     FRAME_RATE = 30             # Video frame rate
     MIN_BOX_AREA = 10           # Lowered from 100 - Minimum bounding box area
     
     # Re-ID Settings
-    REID_THRESHOLD = 0.42       # Cosine distance threshold for same person
-    MAX_GALLERY_SIZE = 512      # Max stored features per person
+    REID_THRESHOLD = 0.45       # Cosine distance threshold for same person
+    MAX_GALLERY_SIZE = 128      # Reduced for faster processing with 3 cameras
     
     # ============================================
     # LIFECYCLE MANAGEMENT
@@ -81,19 +81,41 @@ class Config:
     TIME_WINDOW_SECONDS = 3.0      # Match persons within this time window
     
     # ============================================
+    # CAMERA TOPOLOGY CONFIGURATION
+    # ============================================
+    # Define physical camera connections for intelligent person tracking
+    # Format: {camera_id: [list of connected camera_ids]}
+    # Example: cam01 connects to cam02, cam02 connects to cam01 and cam03, etc.
+    CAMERA_TOPOLOGY = {
+        "cam01": ["cam02"],           # Entrance -> Lobby
+        "cam02": ["cam01", "cam03"],  # Lobby -> Entrance or Warehouse
+        "cam03": ["cam02"],           # Warehouse -> Lobby
+    }
+    
+    # Maximum transition time (seconds) between connected cameras
+    # If a person moves between cameras within this time, maintain same ID
+    # Format: {"source->target": max_seconds}
+    CAMERA_TRANSITION_MAX_TIME = {
+        "cam01->cam02": 5.0,  # Entrance to Lobby: max 5 seconds
+        "cam02->cam01": 5.0,  # Lobby to Entrance: max 5 seconds
+        "cam02->cam03": 6.0,  # Lobby to Warehouse: max 6 seconds
+        "cam03->cam02": 6.0,  # Warehouse to Lobby: max 6 seconds
+    }
+    
+    # ============================================
     # FRAME PROCESSING
     # ============================================
     # Input frame settings
-    INPUT_WIDTH = 1280
-    INPUT_HEIGHT = 720
+    INPUT_WIDTH = 1920   # Full HD resolution for best quality
+    INPUT_HEIGHT = 1080  # Full HD resolution for best quality
     
     # RTSP buffer settings
     RTSP_BUFFER_SIZE = 1        # Minimize latency (1-2 frames)
     RTSP_TIMEOUT = 10           # Seconds to wait for frame
     
     # Output JPEG quality for WebSocket
-    JPEG_QUALITY = 80           # 1-100, higher = better quality
-    OUTPUT_FPS = 15             # FPS to send to frontend (lower = less bandwidth)
+    JPEG_QUALITY = 85           # High quality for Full HD frames
+    OUTPUT_FPS = 12             # Reduced FPS for Full HD processing
     
     # ============================================
     # SERVER SETTINGS

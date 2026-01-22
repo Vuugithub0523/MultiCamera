@@ -43,7 +43,19 @@ async def lifespan(app: FastAPI):
     # Define frame callback for broadcasting
     async def frame_callback(camera_id: str, jpeg_bytes: bytes, tracks):
         """Called when a frame is processed"""
-        await ws_manager.broadcast(camera_id, jpeg_bytes)
+        # Convert tracks to serializable dict
+        metadata = [
+            {
+                'track_id': t.track_id,
+                'person_id': t.person_id,
+                'bbox': t.bbox,  # (x, y, w, h)
+                'confidence': float(t.confidence),
+                'is_new': t.is_new,
+                'state': t.state
+            }
+            for t in tracks
+        ]
+        await ws_manager.broadcast(camera_id, jpeg_bytes, metadata)
     
     # Start processing in background
     processing_task = asyncio.create_task(manager.start_processing(frame_callback))

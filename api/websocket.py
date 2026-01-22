@@ -1,11 +1,12 @@
 """
 WebSocket Handler
-Streams processed frames to clients
+Streams processed frames with metadata to clients
 """
 import asyncio
 from fastapi import WebSocket, WebSocketDisconnect
-from typing import Dict, Set
+from typing import Dict, Set, List, Any
 import json
+import struct
 
 
 class WebSocketManager:
@@ -39,10 +40,20 @@ class WebSocketManager:
         
         print(f"[WebSocket] Client disconnected from {camera_id}")
     
-    async def broadcast(self, camera_id: str, data: bytes):
-        """Broadcast frame to all connected clients for a camera"""
+    async def broadcast(self, camera_id: str, frame_data: bytes, metadata: List[Dict[str, Any]] = None):
+        """Broadcast frame with metadata to all connected clients
+        
+        Format: [4 bytes: metadata_length][metadata_json][frame_jpeg]
+        """
         if camera_id not in self.connections:
             return
+        
+        # Prepare metadata
+        metadata_json = json.dumps(metadata or []).encode('utf-8')
+        metadata_length = len(metadata_json)
+        
+        # Pack: [4 bytes length][metadata][frame]
+        data = struct.pack('!I', metadata_length) + metadata_json + frame_data
         
         # Store latest frame
         self.latest_frames[camera_id] = data

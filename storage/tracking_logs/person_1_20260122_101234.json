@@ -1,0 +1,168 @@
+{
+  "person_id": 1,
+  "state": "archived",
+  "first_seen": "2026-01-22T10:12:34.457173",
+  "last_seen": "2026-01-22T10:12:38.936656",
+  "current_camera": "cam02",
+  "camera_history": [
+    "cam01",
+    "cam02",
+    "cam01",
+    "cam02"
+  ],
+  "total_detections": 9,
+  "cameras_visited": {
+    "cam01": 4,
+    "cam02": 5
+  },
+  "detections_history": [
+    {
+      "timestamp": "2026-01-22T10:12:34.457173",
+      "camera_id": "cam01",
+      "confidence": 0.7888626456260681,
+      "bbox": [
+        666,
+        612,
+        588,
+        467
+      ],
+      "state": "detected"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:34.486370",
+      "camera_id": "cam01",
+      "confidence": 0.7555192708969116,
+      "bbox": [
+        0,
+        216,
+        356,
+        845
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.7555192708969116,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:34.763590",
+      "camera_id": "cam01",
+      "confidence": 0.5395262837409973,
+      "bbox": [
+        394,
+        715,
+        166,
+        349
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.5395262837409973,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:35.798096",
+      "camera_id": "cam02",
+      "confidence": 0.9446848630905151,
+      "bbox": [
+        526,
+        523,
+        411,
+        556
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.9446848630905151,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:35.822678",
+      "camera_id": "cam02",
+      "confidence": 0.8873212337493896,
+      "bbox": [
+        995,
+        526,
+        809,
+        538
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.8873212337493896,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:35.881725",
+      "camera_id": "cam02",
+      "confidence": 0.5339983105659485,
+      "bbox": [
+        0,
+        232,
+        165,
+        797
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.5339983105659485,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:36.577945",
+      "camera_id": "cam01",
+      "confidence": 0.4086744785308838,
+      "bbox": [
+        527,
+        616,
+        199,
+        463
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.4086744785308838,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:37.918915",
+      "camera_id": "cam02",
+      "confidence": 0.5463865995407104,
+      "bbox": [
+        111,
+        499,
+        209,
+        354
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.5463865995407104,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    },
+    {
+      "timestamp": "2026-01-22T10:12:38.936656",
+      "camera_id": "cam02",
+      "confidence": 0.9378775954246521,
+      "bbox": [
+        307,
+        506,
+        222,
+        370
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 1,
+      "match_confidence": 0.9378775954246521,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    }
+  ]
+}

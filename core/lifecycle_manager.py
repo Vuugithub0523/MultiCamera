@@ -125,8 +125,58 @@ class PersonLifecycle:
         """Change lifecycle state"""
         old_state = self.state
         self.state = new_state
-        self.state_history.append((new_state, datetime.now()))
+        self.state_history.append((new_state, datetime.now()))        
+    def is_feasible_transition(
+        self, 
+        current_camera: str, 
+        camera_topology: Dict[str, List[str]], 
+        camera_transition_max_time: Dict[str, float],
+        current_time: datetime
+    ) -> Tuple[bool, str]:
+        """
+        Check if transition from last_camera to current_camera is feasible
         
+        Args:
+            current_camera: Current camera detecting the person
+            camera_topology: Dict defining camera connections
+            camera_transition_max_time: Dict defining max transition times
+            current_time: Current datetime
+            
+        Returns:
+            Tuple of (is_feasible: bool, reason: str)
+        """
+        time_diff = (current_time - self.last_seen).total_seconds()
+        
+        # Rule 1: Same camera -> always allow (detector drop, occlusion, standing still)
+        if current_camera == self.last_camera:
+            return (True, f"same_camera (cam {current_camera})")
+        
+        # Rule 2: Check topology-based transition
+        if self.last_camera in camera_topology:
+            connected_cameras = camera_topology[self.last_camera]
+            
+            if current_camera in connected_cameras:
+                # Cameras are connected - check transition time
+                transition_key = f"{self.last_camera}->{current_camera}"
+                
+                if transition_key in camera_transition_max_time:
+                    max_time = camera_transition_max_time[transition_key]
+                    
+                    if time_diff <= max_time:
+                        return (True, f"topology_transition ({transition_key}, Δt={time_diff:.2f}s <= {max_time}s)")
+                    else:
+                        return (False, f"topology_timeout ({transition_key}, Δt={time_diff:.2f}s > {max_time}s)")
+                else:
+                    # No explicit max time defined, but cameras are connected
+                    # Allow with default time window
+                    return (True, f"topology_connected ({self.last_camera}->{current_camera})")
+            else:
+                # Cameras not physically connected
+                return (False, f"topology_blocked (cam {self.last_camera} -> {current_camera} not connected)")
+        
+        # Rule 3: Fallback - no topology defined, allow within reasonable time
+        return (True, f"no_topology_fallback (Δt={time_diff:.2f}s)")
+            
         # Log state transition
         print(f"[Lifecycle] Person {self.person_id}: {old_state.value} -> {new_state.value}")
     
@@ -187,6 +237,9 @@ class PersonLifecycleManager:
         self.total_persons_created = 0
         self.total_persons_archived = 0
         self.time_window_rejections = 0
+        self.topology_rejections = 0
+        self.same_camera_matches = 0
+        self.topology_transitions = 0
         
         print(f"[LifecycleManager] Initialized with output_dir: {output_dir}")
     
@@ -293,6 +346,56 @@ class PersonLifecycleManager:
         
         return matchable
     
+    def get_matchable_persons_topology(
+        self,
+        current_camera: str,
+        current_time: datetime,
+        time_window_seconds: float,
+        camera_topology: Dict[str, List[str]],
+        camera_transition_max_time: Dict[str, float]
+    ) -> Dict[int, Tuple[PersonLifecycle, str]]:
+        """
+        Get matchable persons based on topology and time constraints
+        
+        Args:
+            current_camera: Current camera ID
+            current_time: Current datetime
+            time_window_seconds: Time window fallback (seconds)
+            camera_topology: Camera connectivity dict
+            camera_transition_max_time: Max transition times dict
+            
+        Returns:
+            Dict of {person_id: (person, feasibility_reason)}
+        """
+        matchable = {}
+        
+        # Check all active persons
+        for person_id, person in self.persons.items():
+            # Skip archived persons
+            if person.state == PersonState.ARCHIVED:
+                continue
+            
+            is_feasible, reason = person.is_feasible_transition(
+                current_camera,
+                camera_topology,
+                camera_transition_max_time,
+                current_time
+            )
+            
+            if is_feasible:
+                matchable[person_id] = (person, reason)
+                
+                # Update statistics
+                if "same_camera" in reason:
+                    self.same_camera_matches += 1
+                elif "topology_transition" in reason:
+                    self.topology_transitions += 1
+            else:
+                if "topology_blocked" in reason or "topology_timeout" in reason:
+                    self.topology_rejections += 1
+        
+        return matchable
+    
     def get_active_persons(self) -> Dict[int, PersonLifecycle]:
         """Get all active (non-archived) persons"""
         return self.persons.copy()
@@ -312,7 +415,10 @@ class PersonLifecycleManager:
             'total_archived': len(self.archived_persons),
             'total_created': self.total_persons_created,
             'state_distribution': dict(state_counts),
-            'time_window_rejections': self.time_window_rejections
+            'time_window_rejections': self.time_window_rejections,
+            'topology_rejections': self.topology_rejections,
+            'same_camera_matches': self.same_camera_matches,
+            'topology_transitions': self.topology_transitions
         }
     
     def export_summary_csv(self, filename: str = "tracking_summary.csv"):

@@ -1,0 +1,64 @@
+{
+  "person_id": 51,
+  "state": "archived",
+  "first_seen": "2026-01-22T10:17:23.300429",
+  "last_seen": "2026-01-22T10:17:24.486251",
+  "current_camera": "cam01",
+  "camera_history": [
+    "cam02",
+    "cam01"
+  ],
+  "total_detections": 2,
+  "cameras_visited": {
+    "cam02": 1,
+    "cam01": 1
+  },
+  "detections_history": [
+    {
+      "timestamp": "2026-01-22T10:17:23.300429",
+      "camera_id": "cam02",
+      "confidence": 0.6191228032112122,
+      "bbox": [
+        1062,
+        549,
+        154,
+        267
+      ],
+      "state": "detected"
+    },
+    {
+      "timestamp": "2026-01-22T10:17:23.301441",
+      "camera_id": "cam02",
+      "confidence": 0.6191228032112122,
+      "bbox": [
+        1062,
+        549,
+        154,
+        267
+      ],
+      "state": "detected",
+      "match_score": null,
+      "matched_global_id": null,
+      "match_confidence": null,
+      "reasoning": "no_match_in_window",
+      "feasibility_reason": "new_person"
+    },
+    {
+      "timestamp": "2026-01-22T10:17:24.486251",
+      "camera_id": "cam01",
+      "confidence": 0.4721166491508484,
+      "bbox": [
+        1204,
+        541,
+        225,
+        358
+      ],
+      "state": "tracking",
+      "match_score": null,
+      "matched_global_id": 51,
+      "match_confidence": 0.4721166491508484,
+      "reasoning": "reid_matched",
+      "feasibility_reason": "within_time_window"
+    }
+  ]
+}

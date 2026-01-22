@@ -40,7 +40,9 @@ class CameraPipeline:
         detect_skip_frames: int = 2,
         output_fps: int = 15,
         reid_threshold: float = 0.42,
-        time_window_seconds: float = 3.0
+        time_window_seconds: float = 3.0,
+        camera_topology: Optional[Dict[str, List[str]]] = None,
+        camera_transition_max_time: Optional[Dict[str, float]] = None
     ):
         """
         Initialize camera pipeline
@@ -56,6 +58,8 @@ class CameraPipeline:
             output_fps: Output frame rate for WebSocket
             reid_threshold: Re-ID matching threshold
             time_window_seconds: Time window for person matching
+            camera_topology: Camera connection topology dict
+            camera_transition_max_time: Max transition times between cameras
         """
         self.camera_id = camera_id
         self.detector = detector
@@ -67,6 +71,8 @@ class CameraPipeline:
         self.output_fps = output_fps
         self.reid_threshold = reid_threshold
         self.time_window_seconds = time_window_seconds
+        self.camera_topology = camera_topology or {}
+        self.camera_transition_max_time = camera_transition_max_time or {}
         
         self.frame_count = 0
         self.track_to_person = {}  # Map track_id to person_id
@@ -134,11 +140,29 @@ class CameraPipeline:
                     features = self.feature_extractor.extract(crop)
                     
                     if features is not None:
-                        # Get matchable persons within time window
-                        matchable_persons = self.lifecycle_manager.get_matchable_persons(
-                            current_time, 
-                            self.time_window_seconds
-                        )
+                        # Get matchable persons using topology-based matching
+                        if self.camera_topology:
+                            # Use topology-based matching
+                            matchable_persons_dict = self.lifecycle_manager.get_matchable_persons_topology(
+                                self.camera_id,
+                                current_time,
+                                self.time_window_seconds,
+                                self.camera_topology,
+                                self.camera_transition_max_time
+                            )
+                            # Extract just the person IDs
+                            matchable_persons = list(matchable_persons_dict.keys())
+                            
+                            # Log topology decision
+                            if matchable_persons_dict:
+                                reasons = [reason for _, reason in matchable_persons_dict.values()]
+                                print(f"[{self.camera_id}] Topology matching: {len(matchable_persons)} candidates - {reasons[:3]}")
+                        else:
+                            # Fallback to time window only
+                            matchable_persons = self.lifecycle_manager.get_matchable_persons(
+                                current_time,
+                                self.time_window_seconds
+                            )
                         
                         # Try to match with existing persons
                         if matchable_persons:
@@ -227,11 +251,9 @@ class CameraPipeline:
         self.lifecycle_manager.mark_frame_end(detected_person_ids)
         self.lifecycle_manager.cleanup_old_persons()
         
-        # Step 5: Annotate frame with enhanced visualization
-        annotated = self._draw_annotations(frame, track_infos)
-        
-        # Step 6: Encode to JPEG (always output for WebSocket)
-        _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        # Step 5: Encode original frame to JPEG (no annotation - frontend will draw)
+        # This saves CPU/RAM by skipping frame copy and drawing operations
+        _, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
         jpeg_bytes = jpeg.tobytes()
         
         # Update FPS
