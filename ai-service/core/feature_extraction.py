@@ -2,14 +2,12 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 import albumentations as A
-from scipy.spatial import distance
-from albumentations.pytorch import ToTensorV2
 
 
 class FeatureExtraction:
     def __init__(
         self,
-        onnx_path="./pretrained_models/osnet_x1_0.onnx",
+        onnx_path="./models/pretrained_models/osnet_x1_0.onnx",
         device="cpu",
     ):
         self.onnx_path = onnx_path
@@ -31,7 +29,10 @@ class FeatureExtraction:
             2:4
         ]
         self.image_augmentation = A.Compose(
-            [A.Resize(self.model_height, self.model_width), A.Normalize(), ToTensorV2()]
+            [
+                A.Resize(self.model_height, self.model_width),
+                A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
         )
 
     def predict_img(self, img):
@@ -43,14 +44,7 @@ class FeatureExtraction:
     def _preprocessing_img(self, img):
         image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         image = self.image_augmentation(image=np.array(image))["image"]
+        # Convert to CHW format and add batch dimension
+        image = np.transpose(image, (2, 0, 1)).astype(np.float32)
         image = np.expand_dims(image, axis=0)
         return image
-
-
-if __name__ == "__main__":
-    feature_extraction = FeatureExtraction()
-    cam0 = cv2.imread("./sample_image/cam0_0.png")
-    cam1 = cv2.imread("./sample_image/cam0_2.png")
-    output0 = feature_extraction.predict_img(cam0)[0]
-    output1 = feature_extraction.predict_img(cam1)[0]
-    print(distance.cosine(output0, output1))

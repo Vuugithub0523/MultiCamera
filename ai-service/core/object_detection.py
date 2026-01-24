@@ -6,8 +6,8 @@ import onnxruntime as ort
 class ObjectDetection:
     def __init__(
         self,
-        onnx_path="./pretrained_models/yolov4-tiny.onnx",
-        coco_names_path="./pretrained_models/coco.names",
+        onnx_path="./models/pretrained_models/yolov4-tiny.onnx",
+        coco_names_path="./models/pretrained_models/coco.names",
         device="cpu",
         confidence_threshold=0.5,
         choose_classes=["person"],
@@ -173,10 +173,3 @@ class ObjectDetection:
             order = order[inds + 1]
 
         return np.array(keep, dtype=np.uint8)
-
-
-if __name__ == "__main__":
-    object_detection = ObjectDetection()
-    input = cv2.imread("./sample_image/testing.png")
-    output = object_detection.predict_img(input)
-    print(output)

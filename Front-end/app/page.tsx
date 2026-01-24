@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import {
@@ -25,6 +25,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { VideoStream } from "@/components/VideoStream"
 
+const API_BASE_URL = "http://localhost:8080"
+
 // Camera configuration matching backend camera IDs
 const cameras = [
   { id: "cam01", code: "CCTV 01", name: "Camera 1 - Entrance", location: "Main Area", status: "online" },
@@ -32,30 +34,16 @@ const cameras = [
   { id: "cam03", code: "CCTV 03", name: "Camera 3 - Warehouse", location: "Storage", status: "online" },
 ]
 
-// Tracked persons data - số người đang tracking (từ server)
-const trackedPersons = [
-  { id: 5, confidence: 98, cameraId: "cam01", firstSeen: "10:00:05" },
-  { id: 12, confidence: 95, cameraId: "cam01", firstSeen: "10:02:15" },
-  { id: 8, confidence: 92, cameraId: "cam02", firstSeen: "10:01:30" },
-  { id: 3, confidence: 89, cameraId: "cam03", firstSeen: "09:58:45" },
-]
-
-const events = [
-  { id: 1, time: "10:05:32", personId: 5, type: "appear", camera: "cam01", thumbnail: "/person-face-portrait.png" },
-  { id: 2, time: "10:05:45", personId: 5, type: "move", camera: "cam02", thumbnail: "/person-face-portrait-man.jpg" },
-  { id: 3, time: "10:06:12", personId: 12, type: "appear", camera: "cam01", thumbnail: "/person-face-portrait-woman.jpg" },
-  {
-    id: 4,
-    time: "10:06:30",
-    personId: 8,
-    type: "alert",
-    camera: "cam02",
-    thumbnail: "/person-face-portrait-stranger.jpg",
-    message: "Phát hiện người lạ tại khu vực kho",
-  },
-  { id: 5, time: "10:07:00", personId: 3, type: "appear", camera: "cam03", thumbnail: "/person-face-portrait-employee.jpg" },
-  { id: 6, time: "10:07:15", personId: 5, type: "move", camera: "cam03", thumbnail: "/person-face-portrait-male.jpg" },
-]
+interface TrackingEvent {
+  id: number
+  timestamp: string
+  time: string
+  type: string
+  person_id: number
+  camera_id: string
+  confidence: number
+  from_camera?: string
+}
 
 export default function Dashboard() {
   const router = useRouter()
@@ -65,6 +53,9 @@ export default function Dashboard() {
   const [lightboxCamera, setLightboxCamera] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [events, setEvents] = useState<TrackingEvent[]>([])
+  const [activePersons, setActivePersons] = useState(0)
+  const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -73,6 +64,65 @@ export default function Dashboard() {
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  // Connect to WebSocket for real-time events
+  useEffect(() => {
+    const connectWebSocket = () => {
+      const ws = new WebSocket(`ws://localhost:8080/ws/events`)
+
+      ws.onopen = () => {
+        console.log("Connected to events stream")
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const newEvent: TrackingEvent = JSON.parse(event.data)
+          setEvents((prev) => [...prev.slice(-49), newEvent]) // Keep last 50 events
+        } catch (error) {
+          console.error("Failed to parse event:", error)
+        }
+      }
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error)
+      }
+
+      ws.onclose = () => {
+        console.log("Disconnected from events stream, reconnecting...")
+        setTimeout(connectWebSocket, 3000) // Reconnect after 3 seconds
+      }
+
+      wsRef.current = ws
+    }
+
+    connectWebSocket()
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close()
+      }
+    }
+  }, [])
+
+  // Fetch tracking stats periodically
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/tracking/stats`)
+        const data = await response.json()
+        if (!data.error) {
+          setActivePersons(data.active_persons || 0)
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error)
+      }
+    }
+
+    fetchStats()
+    const interval = setInterval(fetchStats, 2000) // Update every 2 seconds
+
+    return () => clearInterval(interval)
   }, [])
 
   const sidebarCameras = cameras.filter((c) => c.id !== mainCamera)
@@ -85,6 +135,34 @@ export default function Dashboard() {
       setMainCamera(cameraId)
       setIsTransitioning(false)
     }, 150)
+  }
+
+  const getEventMessage = (event: TrackingEvent) => {
+    const personIdStr = `#${event.person_id.toString().padStart(2, "0")}`
+    switch (event.type) {
+      case "appear":
+        return (
+          <>
+            ID <span className="text-primary font-mono font-semibold">{personIdStr}</span> xuất hiện
+          </>
+        )
+      case "move":
+        return (
+          <>
+            ID <span className="text-primary font-mono font-semibold">{personIdStr}</span> di chuyển
+          </>
+        )
+      case "reappear":
+        return (
+          <>
+            ID <span className="text-primary font-mono font-semibold">{personIdStr}</span> xuất hiện lại
+          </>
+        )
+      case "alert":
+        return <span className="text-red-600 dark:text-red-400 text-[10px]">Phát hiện người lạ</span>
+      default:
+        return `ID ${personIdStr} - ${event.type}`
+    }
   }
 
   const CameraHeader = ({ camera, isMain = false }: { camera: (typeof cameras)[0]; isMain?: boolean }) => (
@@ -124,7 +202,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border">
               <Users className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-medium text-foreground">
-                Active: <span className="text-primary font-semibold">{trackedPersons.length}</span>
+                Active: <span className="text-primary font-semibold">{activePersons}</span>
               </span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border">
@@ -214,63 +292,49 @@ export default function Dashboard() {
         <div className="border-t border-border bg-card flex-shrink-0">
           <div className="px-4 py-3">
             <div className="flex gap-3 overflow-x-auto pb-1">
-              {events.map((event) => (
-                <Card
-                  key={event.id}
-                  className={`p-2.5 cursor-pointer transition-all hover:shadow-md min-w-[180px] flex-shrink-0 ${event.type === "alert"
-                    ? "border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-950/30"
-                    : "border-border bg-card hover:bg-secondary/30"
+              {events.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-2">Đang chờ sự kiện từ hệ thống tracking...</div>
+              ) : (
+                events.slice().reverse().map((event) => (
+                  <Card
+                    key={event.id}
+                    className={`p-2.5 cursor-pointer transition-all hover:shadow-md min-w-[180px] flex-shrink-0 ${
+                      event.type === "alert"
+                        ? "border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-950/30"
+                        : "border-border bg-card hover:bg-secondary/30"
                     }`}
-                  onClick={() => {
-                    if (event.camera !== mainCamera) {
-                      setMainCamera(event.camera)
-                    }
-                  }}
-                >
-                  <div className="flex items-start gap-2">
-                    <img
-                      src={event.thumbnail || "/placeholder.svg"}
-                      alt={`Person ${event.personId}`}
-                      className="w-9 h-9 rounded-full border border-border object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[10px] font-mono text-muted-foreground">[{event.time}]</span>
-                        {event.type === "alert" && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                    onClick={() => {
+                      if (event.camera_id !== mainCamera) {
+                        setMainCamera(event.camera_id)
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-9 h-9 rounded-full border border-border bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Users className="w-4 h-4 text-primary" />
                       </div>
-                      <p className="text-xs text-foreground leading-tight">
-                        {event.type === "appear" && (
-                          <>
-                            ID{" "}
-                            <span className="text-primary font-mono font-semibold">
-                              #{event.personId.toString().padStart(2, "0")}
-                            </span>{" "}
-                            xuất hiện
-                          </>
-                        )}
-                        {event.type === "move" && (
-                          <>
-                            ID{" "}
-                            <span className="text-primary font-mono font-semibold">
-                              #{event.personId.toString().padStart(2, "0")}
-                            </span>{" "}
-                            di chuyển
-                          </>
-                        )}
-                        {event.type === "alert" && (
-                          <span className="text-red-600 dark:text-red-400 text-[10px]">{event.message}</span>
-                        )}
-                      </p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-2.5 h-2.5 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">
-                          {cameras.find((c) => c.id === event.camera)?.code}
-                        </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-mono text-muted-foreground">[{event.time}]</span>
+                          {event.type === "alert" && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                        </div>
+                        <p className="text-xs text-foreground leading-tight">{getEventMessage(event)}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-2.5 h-2.5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">
+                            {cameras.find((c) => c.id === event.camera_id)?.code || event.camera_id}
+                          </span>
+                          {event.confidence && (
+                            <span className="text-[10px] text-muted-foreground ml-1">
+                              ({event.confidence.toFixed(0)}%)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -338,9 +402,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
-                      <span>
-                        {trackedPersons.filter((p) => p.cameraId === lightboxCamera).length} người đang tracking
-                      </span>
+                      <span>{activePersons} người đang tracking</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />

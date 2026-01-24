@@ -1,0 +1,14 @@
+# Backend Server Dependencies
+# Web Framework
+fastapi==0.115.0
+uvicorn==0.30.6
+
+# AI Service Dependencies (reuse from ai-service)
+albumentations==1.3.1
+opencv-python==4.8.1.78
+onnxruntime-gpu==1.23.2
+numpy==1.26.4
+scipy==1.11.4
+PyYAML==6.0
+
+# WebSocket support is included in FastAPI/Uvicorn

@@ -13,7 +13,7 @@ resize_all_camera_image: 0.5
 
 object_detection_threshold: 0.7
 feature_extraction_threshold: 0.42
-inference_model_device: "cuda"
+inference_model_device: "cpu"
 tracking_stream_enabled: true
 tracking_stream_interval: 1
 

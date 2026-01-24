@@ -1,0 +1,14 @@
+# AI Service Dependencies
+# Computer Vision and Deep Learning
+albumentations==1.3.1
+opencv-python==4.8.1.78
+opencv-python-headless==4.5.5.64
+onnxruntime-gpu==1.23.2
+
+# Scientific Computing
+numpy==1.26.4
+scipy==1.11.4
+
+# Utilities
+PyYAML==6.0
+tqdm==4.63.0

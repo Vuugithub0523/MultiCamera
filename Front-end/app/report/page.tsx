@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Users, Clock, TrendingUp, Calendar, Download, Flame } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -9,65 +9,109 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard-layout"
 
-// Hourly traffic data
-const hourlyData = [
-  { hour: "06:00", count: 12 },
-  { hour: "07:00", count: 28 },
-  { hour: "08:00", count: 45 },
-  { hour: "09:00", count: 62 },
-  { hour: "10:00", count: 78 },
-  { hour: "11:00", count: 85 },
-  { hour: "12:00", count: 92 },
-  { hour: "13:00", count: 88 },
-  { hour: "14:00", count: 75 },
-  { hour: "15:00", count: 68 },
-  { hour: "16:00", count: 72 },
-  { hour: "17:00", count: 95 },
-  { hour: "18:00", count: 82 },
-  { hour: "19:00", count: 55 },
-  { hour: "20:00", count: 32 },
-  { hour: "21:00", count: 18 },
-]
+const API_BASE_URL = "http://localhost:8080"
 
-// Flow data for Sankey diagram
-const flowData = {
-  nodes: [{ name: "Camera 1\n(Entrance)" }, { name: "Camera 2\n(Lobby)" }, { name: "Camera 3\n(Warehouse)" }],
-  links: [
-    { source: 0, target: 1, value: 45 },
-    { source: 0, target: 2, value: 25 },
-    { source: 1, target: 2, value: 35 },
-    { source: 1, target: 0, value: 15 },
-    { source: 2, target: 1, value: 20 },
-    { source: 2, target: 0, value: 30 },
-  ],
+interface ReportStats {
+  total_unique_visitors: number
+  avg_dwell_time_seconds: number
+  peak_hour: string
+  peak_hour_count: number
+  active_cameras: number
+  total_cameras: number
+  hourly_traffic: { hour: string; count: number }[]
+  camera_flow: {
+    totals: { [key: string]: number }
+    transitions: { [key: string]: number }
+  }
 }
 
-// KPI cards data
-const kpiData = [
-  { title: "Total Unique Visitors", value: "247", change: "+12%", icon: Users },
-  { title: "Avg Dwell Time", value: "4m 32s", change: "+8%", icon: Clock },
-  { title: "Peak Hour", value: "17:00", change: "95 people", icon: TrendingUp },
-  { title: "Active Zones", value: "3/3", change: "100%", icon: Flame },
-]
-
-// Heatmap zones
-const heatmapZones = [
-  { id: 1, x: 10, y: 20, w: 25, h: 30, intensity: 0.9, label: "Entrance" },
-  { id: 2, x: 45, y: 15, w: 20, h: 25, intensity: 0.7, label: "Counter" },
-  { id: 3, x: 70, y: 40, w: 25, h: 35, intensity: 0.5, label: "Storage" },
-  { id: 4, x: 20, y: 60, w: 30, h: 25, intensity: 0.3, label: "Exit" },
-]
+// Camera names mapping
+const cameraNames: { [key: string]: string } = {
+  cam01: "Camera 1 - Entrance",
+  cam02: "Camera 2 - Lobby",
+  cam03: "Camera 3 - Warehouse",
+}
 
 export default function ReportPage() {
   const [selectedDate, setSelectedDate] = useState("today")
-  const [selectedCamera, setSelectedCamera] = useState("1")
+  const [stats, setStats] = useState<ReportStats | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const getHeatColor = (intensity: number) => {
-    if (intensity > 0.8) return "rgba(239, 68, 68, 0.6)"
-    if (intensity > 0.6) return "rgba(249, 115, 22, 0.5)"
-    if (intensity > 0.4) return "rgba(234, 179, 8, 0.4)"
-    return "rgba(34, 197, 94, 0.3)"
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/report/stats`)
+        const data = await response.json()
+        if (!data.error) {
+          setStats(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch report stats:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+    const interval = setInterval(fetchStats, 5000) // Refresh every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const formatDwellTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}m ${secs}s`
   }
+
+  const kpiData = stats
+    ? [
+        {
+          title: "Total Unique Visitors",
+          value: stats.total_unique_visitors.toString(),
+          change: "+12%",
+          icon: Users,
+        },
+        {
+          title: "Avg Dwell Time",
+          value: formatDwellTime(stats.avg_dwell_time_seconds),
+          change: "+8%",
+          icon: Clock,
+        },
+        {
+          title: "Peak Hour",
+          value: stats.peak_hour,
+          change: `${stats.peak_hour_count} people`,
+          icon: TrendingUp,
+        },
+        {
+          title: "Active Zones",
+          value: `${stats.active_cameras}/${stats.total_cameras}`,
+          change: "100%",
+          icon: Flame,
+        },
+      ]
+    : []
+
+  // Extract camera flow data
+  const getCameraFlowData = () => {
+    if (!stats) return { cameras: [], transitions: [] }
+
+    const cameras = Object.entries(stats.camera_flow.totals).map(([camId, count]) => ({
+      id: camId,
+      name: cameraNames[camId] || camId,
+      count: count,
+    }))
+
+    const transitions = Object.entries(stats.camera_flow.transitions).map(([key, count]) => {
+      const [from, to] = key.split("->")
+      return { from, to, count }
+    })
+
+    return { cameras, transitions }
+  }
+
+  const { cameras, transitions } = getCameraFlowData()
 
   return (
     <DashboardLayout>
@@ -100,27 +144,42 @@ export default function ReportPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-4 gap-4">
-          {kpiData.map((kpi, index) => (
-            <Card key={index} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-                    <kpi.icon className="w-5 h-5 text-primary" />
+          {loading ? (
+            <>
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="animate-pulse">
+                      <div className="h-10 w-10 bg-secondary rounded-lg mb-3" />
+                      <div className="h-8 bg-secondary rounded mb-2" />
+                      <div className="h-4 bg-secondary rounded" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          ) : (
+            kpiData.map((kpi, index) => (
+              <Card key={index} className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                      <kpi.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-xs text-green-500 font-medium">{kpi.change}</span>
                   </div>
-                  <span className="text-xs text-green-500 font-medium">{kpi.change}</span>
-                </div>
-                <div className="text-2xl font-bold mb-1">{kpi.value}</div>
-                <div className="text-sm text-muted-foreground">{kpi.title}</div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="text-2xl font-bold mb-1">{kpi.value}</div>
+                  <div className="text-sm text-muted-foreground">{kpi.title}</div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="bg-secondary">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
             <TabsTrigger value="flow">Movement Flow</TabsTrigger>
           </TabsList>
 
@@ -132,96 +191,40 @@ export default function ReportPage() {
                 <CardDescription>Unique visitors per hour</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={hourlyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                          color: "hsl(var(--foreground))",
-                        }}
-                        formatter={(value: number) => [`${value} people`, "Visitors"]}
-                      />
-                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab 2: Heatmap */}
-          <TabsContent value="heatmap" className="space-y-4">
-            <Card className="bg-card border-border">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Density Heatmap</CardTitle>
-                  <CardDescription>Area density based on dwell time</CardDescription>
-                </div>
-                <Select value={selectedCamera} onValueChange={setSelectedCamera}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Camera 1 - Entrance</SelectItem>
-                    <SelectItem value="2">Camera 2 - Lobby</SelectItem>
-                    <SelectItem value="3">Camera 3 - Warehouse</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-              <CardContent>
-                <div className="relative aspect-video bg-secondary rounded-lg overflow-hidden">
-                  {/* Background Image */}
-                  <img
-                    src={`/floor-plan-camera-.jpg?height=400&width=700&query=floor plan camera ${selectedCamera} area top view`}
-                    alt="Floor plan"
-                    className="w-full h-full object-cover opacity-50"
-                  />
-
-                  {/* Heatmap Zones */}
-                  {heatmapZones.map((zone) => (
-                    <div
-                      key={zone.id}
-                      className="absolute rounded-lg transition-all hover:scale-105 cursor-pointer"
-                      style={{
-                        left: `${zone.x}%`,
-                        top: `${zone.y}%`,
-                        width: `${zone.w}%`,
-                        height: `${zone.h}%`,
-                        backgroundColor: getHeatColor(zone.intensity),
-                        backdropFilter: "blur(4px)",
-                      }}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-medium text-white drop-shadow-lg">{zone.label}</span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Legend */}
-                  <div className="absolute bottom-4 right-4 bg-card/90 rounded-lg p-3 border border-border">
-                    <div className="text-xs font-medium mb-2">Density</div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex">
-                        <div className="w-6 h-3 rounded-l" style={{ backgroundColor: "rgba(34, 197, 94, 0.6)" }} />
-                        <div className="w-6 h-3" style={{ backgroundColor: "rgba(234, 179, 8, 0.6)" }} />
-                        <div className="w-6 h-3" style={{ backgroundColor: "rgba(249, 115, 22, 0.6)" }} />
-                        <div className="w-6 h-3 rounded-r" style={{ backgroundColor: "rgba(239, 68, 68, 0.6)" }} />
-                      </div>
-                      <span className="text-xs text-muted-foreground">Low → High</span>
-                    </div>
+                {loading ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-muted-foreground">Loading data...</div>
                   </div>
-                </div>
+                ) : stats && stats.hourly_traffic.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.hourly_traffic}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            color: "hsl(var(--foreground))",
+                          }}
+                          formatter={(value: number) => [`${value} people`, "Visitors"]}
+                        />
+                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-muted-foreground">No data available yet</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Tab 3: Movement Flow */}
+          {/* Tab 2: Movement Flow */}
           <TabsContent value="flow" className="space-y-4">
             <Card className="bg-card border-border">
               <CardHeader>
@@ -229,88 +232,61 @@ export default function ReportPage() {
                 <CardDescription>Traffic flow between cameras</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-6 py-8">
-                  {/* Camera 1 */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mb-3">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">85</div>
-                        <div className="text-xs text-muted-foreground">people</div>
-                      </div>
-                    </div>
-                    <div className="text-sm font-medium">Camera 1</div>
-                    <div className="text-xs text-muted-foreground">Entrance</div>
+                {loading ? (
+                  <div className="py-8 flex items-center justify-center">
+                    <div className="text-muted-foreground">Loading flow data...</div>
                   </div>
-
-                  {/* Camera 2 */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-24 h-24 rounded-full bg-chart-2/20 border-2 border-chart-2 flex items-center justify-center mb-3">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold" style={{ color: "hsl(var(--chart-2))" }}>
-                          72
+                ) : cameras.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-6 py-8">
+                      {cameras.map((camera, idx) => (
+                        <div key={camera.id} className="flex flex-col items-center">
+                          <div
+                            className={`w-24 h-24 rounded-full border-2 flex items-center justify-center mb-3 ${
+                              idx === 0
+                                ? "bg-primary/20 border-primary"
+                                : idx === 1
+                                ? "bg-chart-2/20 border-chart-2"
+                                : "bg-chart-3/20 border-chart-3"
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div
+                                className={`text-2xl font-bold ${
+                                  idx === 0 ? "text-primary" : idx === 1 ? "text-chart-2" : "text-chart-3"
+                                }`}
+                              >
+                                {camera.count}
+                              </div>
+                              <div className="text-xs text-muted-foreground">people</div>
+                            </div>
+                          </div>
+                          <div className="text-sm font-medium">{camera.name.split(" - ")[0]}</div>
+                          <div className="text-xs text-muted-foreground">{camera.name.split(" - ")[1]}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">people</div>
+                      ))}
+                    </div>
+
+                    {/* Flow Summary */}
+                    {transitions.length > 0 && (
+                      <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-border">
+                        {transitions.slice(0, 3).map((trans, idx) => (
+                          <div key={idx} className="text-center">
+                            <div className="text-lg font-bold text-primary">{trans.count}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {cameraNames[trans.from]?.split(" - ")[0] || trans.from} →{" "}
+                              {cameraNames[trans.to]?.split(" - ")[0] || trans.to}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    <div className="text-sm font-medium">Camera 2</div>
-                    <div className="text-xs text-muted-foreground">Lobby</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-8 flex items-center justify-center">
+                    <div className="text-muted-foreground">No movement data available yet</div>
                   </div>
-
-                  {/* Camera 3 */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-24 h-24 rounded-full bg-chart-3/20 border-2 border-chart-3 flex items-center justify-center mb-3">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold" style={{ color: "hsl(var(--chart-3))" }}>
-                          45
-                        </div>
-                        <div className="text-xs text-muted-foreground">people</div>
-                      </div>
-                    </div>
-                    <div className="text-sm font-medium">Camera 3</div>
-                    <div className="text-xs text-muted-foreground">Warehouse</div>
-                  </div>
-                </div>
-
-                {/* Flow Arrows */}
-                <div className="relative h-32 mx-8">
-                  {/* Cam 1 -> Cam 2 */}
-                  <div className="absolute top-4 left-[15%] w-[35%] flex flex-col items-center">
-                    <div className="w-full h-1 bg-gradient-to-r from-primary to-chart-2 rounded" />
-                    <span className="text-xs mt-1 text-muted-foreground">45 people →</span>
-                  </div>
-
-                  {/* Cam 2 -> Cam 3 */}
-                  <div className="absolute top-4 left-[50%] w-[35%] flex flex-col items-center">
-                    <div className="w-full h-1 bg-gradient-to-r from-chart-2 to-chart-3 rounded" />
-                    <span className="text-xs mt-1 text-muted-foreground">35 people →</span>
-                  </div>
-
-                  {/* Cam 1 -> Cam 3 (direct) */}
-                  <div className="absolute top-16 left-[15%] w-[70%] flex flex-col items-center">
-                    <div className="w-full h-0.5 bg-gradient-to-r from-primary to-chart-3 rounded opacity-50" />
-                    <span className="text-xs mt-1 text-muted-foreground">25 people (direct)</span>
-                  </div>
-                </div>
-
-                {/* Summary Stats */}
-                <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-border">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-primary">53%</div>
-                    <div className="text-xs text-muted-foreground">Cam 1 → Cam 2</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold" style={{ color: "hsl(var(--chart-2))" }}>
-                      49%
-                    </div>
-                    <div className="text-xs text-muted-foreground">Cam 2 → Cam 3</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold" style={{ color: "hsl(var(--chart-3))" }}>
-                      29%
-                    </div>
-                    <div className="text-xs text-muted-foreground">Cam 1 → Cam 3</div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
