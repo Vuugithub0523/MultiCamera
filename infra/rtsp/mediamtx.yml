@@ -1,0 +1,74 @@
+# MediaMTX Configuration
+# For Multi-Camera RTSP Re-streaming
+
+###############################################
+# General server parameters
+logLevel: info
+logDestinations: [stdout]
+
+# API for health checks
+api: yes
+apiAddress: 127.0.0.1:9997
+
+###############################################
+# RTSP server parameters
+rtsp: yes
+rtspAddress: :8554
+rtspTransports: [tcp, udp]
+# rtspRangeType removed (not supported by this MediaMTX build)
+readTimeout: 10s
+writeTimeout: 10s
+readBufferCount: 512
+
+###############################################
+# RTMP server parameters (optional)
+rtmp: no
+
+###############################################
+# HLS server parameters (optional)
+hls: no
+
+###############################################
+# WebRTC server parameters (optional)
+webrtc: no
+
+###############################################
+# Path parameters
+
+# Default path configuration
+# Allows any path to be published/read
+pathDefaults:
+  # Source settings
+  source: publisher
+  sourceProtocol: automatic
+  sourceAnyPortEnable: no
+  sourceFingerprint: ""
+  sourceOnDemand: no
+  sourceOnDemandStartTimeout: 10s
+  sourceOnDemandCloseAfter: 10s
+  maxReaders: 0  # Unlimited
+  
+  # Recording (disabled)
+  record: no
+  
+  # RTSP settings
+  rtspTransport: automatic
+  rtspAnyPort: no
+  # rtspRangeType removed (not supported by this MediaMTX build)
+
+  # Read authentication (none for local dev)
+  readUser: ""
+  readPass: ""
+  
+  # Publish authentication (none for local dev)
+  publishUser: ""
+  publishPass: ""
+
+# Paths for annotated camera streams
+paths:
+  # Allow any path starting with ann_
+  ~^ann_.*$:
+    source: publisher
+    
+  # Fallback for any path
+  all_others:

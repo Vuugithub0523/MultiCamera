@@ -1,0 +1,9 @@
+# Logs
+logs/
+*.log
+
+# Virtual environment
+.venv/
+
+# Environment
+.env

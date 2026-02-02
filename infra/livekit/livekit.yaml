@@ -1,0 +1,45 @@
+# LiveKit Server Configuration
+# For local LAN development
+
+port: 7880
+
+# Development mode - no TURN needed for LAN
+# Uses dev keys for simplicity
+keys:
+  devkey: devsecret
+
+# RTC settings
+rtc:
+  port_range_start: 7882
+  port_range_end: 7892
+  use_external_ip: false
+  tcp_port: 7881
+  
+  # For LAN, we don't need TURN
+  # Clients connect directly via UDP/TCP
+
+# Logging
+logging:
+  level: info
+  pion_level: warn
+
+# Room settings
+room:
+  # Max participants per room
+  max_participants: 20
+
+  # NOTE: some livekit-server builds expect uint32 seconds here (not duration strings)
+  # 5 minutes = 300 seconds
+  empty_timeout: 300
+
+  # 20 seconds
+  departure_timeout: 20
+
+# Webhooks (optional)
+# webhook:
+#   urls:
+#     - http://localhost:8080/webhook
+
+# Redis (optional, for multi-node)
+# redis:
+#   address: localhost:6379

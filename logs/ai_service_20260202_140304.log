@@ -1,0 +1,29 @@
+2026-02-02 14:03:04 | INFO     | root | Logging initialized. Level: INFO, Log file: C:\Multicam\MultiCamera\logs\ai_service_20260202_140304.log
+2026-02-02 14:03:04 | INFO     | app.main | Loading YOLOv4-tiny detector...
+2026-02-02 14:03:04 | INFO     | app.inference.detector | Loaded 1 classes from C:\Multicam\MultiCamera\models\pretrained_models\coco.names
+2026-02-02 14:03:04 | INFO     | app.inference.detector | Person class ID: 0
+2026-02-02 14:03:11 | INFO     | app.inference.detector | ONNX Runtime using: CUDAExecutionProvider
+2026-02-02 14:03:11 | INFO     | app.inference.detector | Model input size: 416x416
+2026-02-02 14:03:11 | INFO     | app.ingest.rtsp_ingest | Connecting to RTSP: cam01
+2026-02-02 14:03:11 | INFO     | app.ingest.rtsp_ingest | Started RTSP ingest worker for cam01
+2026-02-02 14:03:12 | INFO     | app.ingest.rtsp_ingest | Connecting to RTSP: cam02
+2026-02-02 14:03:12 | INFO     | app.ingest.rtsp_ingest | Started RTSP ingest worker for cam02
+2026-02-02 14:03:12 | INFO     | app.ingest.rtsp_ingest | Connecting to RTSP: cam03
+2026-02-02 14:03:12 | INFO     | app.ingest.rtsp_ingest | Started RTSP ingest worker for cam03
+2026-02-02 14:03:12 | INFO     | app.restream.ffmpeg_restreamer | Starting FFmpeg: ffmpeg -y -f rawvideo -vcodec rawvideo -pix_fmt bgr24 -s 1280x720 -r 15 -i - -c:v libx264 -preset veryfast -tune zerolatency -b:v 2M -maxrate 2M -bufsize 1M -pix_fmt yuv420p -g 30 -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:8554/ann_cam01
+2026-02-02 14:03:12 | INFO     | app.restream.ffmpeg_restreamer | FFmpeg started for rtsp://127.0.0.1:8554/ann_cam01
+2026-02-02 14:03:12 | INFO     | app.main | Started restreamer for cam01
+2026-02-02 14:03:12 | INFO     | app.restream.ffmpeg_restreamer | Starting FFmpeg: ffmpeg -y -f rawvideo -vcodec rawvideo -pix_fmt bgr24 -s 1280x720 -r 15 -i - -c:v libx264 -preset veryfast -tune zerolatency -b:v 2M -maxrate 2M -bufsize 1M -pix_fmt yuv420p -g 30 -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:8554/ann_cam02
+2026-02-02 14:03:12 | INFO     | app.restream.ffmpeg_restreamer | FFmpeg started for rtsp://127.0.0.1:8554/ann_cam02
+2026-02-02 14:03:12 | INFO     | app.main | Started restreamer for cam02
+2026-02-02 14:03:12 | INFO     | app.restream.ffmpeg_restreamer | Starting FFmpeg: ffmpeg -y -f rawvideo -vcodec rawvideo -pix_fmt bgr24 -s 1280x720 -r 15 -i - -c:v libx264 -preset veryfast -tune zerolatency -b:v 2M -maxrate 2M -bufsize 1M -pix_fmt yuv420p -g 30 -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:8554/ann_cam03
+2026-02-02 14:03:12 | INFO     | app.restream.ffmpeg_restreamer | FFmpeg started for rtsp://127.0.0.1:8554/ann_cam03
+2026-02-02 14:03:12 | INFO     | app.main | Started restreamer for cam03
+2026-02-02 14:03:12 | INFO     | app.main | Started pipeline for cam01
+2026-02-02 14:03:12 | INFO     | app.main | Started pipeline for cam02
+2026-02-02 14:03:12 | INFO     | app.main | Started pipeline for cam03
+2026-02-02 14:03:12 | INFO     | app.main | AI Service started successfully!
+2026-02-02 14:03:13 | INFO     | app.ingest.rtsp_ingest | Connected to RTSP: cam01
+2026-02-02 14:03:14 | INFO     | app.ingest.rtsp_ingest | Connected to RTSP: cam02
+2026-02-02 14:03:16 | INFO     | app.ingest.rtsp_ingest | Connected to RTSP: cam03
+2026-02-02 14:11:45 | WARNING  | app.restream.ffmpeg_restreamer | FFmpeg pipe error: [Errno 32] Broken pipe, restarting...

@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: livekit
+    # IMPORTANT on Windows Docker Desktop: advertise a host-reachable IP for ICE candidates.
+    # For same-machine testing keep 127.0.0.1. For LAN viewers, change to your LAN IP (e.g. 192.168.1.247).
+    environment:
+      # Set this to the LAN IP of this machine so ICE candidates are reachable.
+      # If your IP changes, update this value.
+      - NODE_IP=192.168.1.247
+    command: --config /etc/livekit.yaml --dev
+    ports:
+      - "7880:7880"        # HTTP/WebSocket
+      - "7881:7881"        # RTC (TCP)
+      # RTC (UDP) port range (must match livekit.yaml)
+      - "7882:7882/udp"
+      - "7883:7883/udp"
+      - "7884:7884/udp"
+      - "7885:7885/udp"
+      - "7886:7886/udp"
+      - "7887:7887/udp"
+      - "7888:7888/udp"
+      - "7889:7889/udp"
+      - "7890:7890/udp"
+      - "7891:7891/udp"
+      - "7892:7892/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    restart: unless-stopped
